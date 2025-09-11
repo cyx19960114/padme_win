@@ -1,0 +1,16 @@
+version: '2.3'
+services:
+
+  proxy:
+    environment:
+      VIRTUAL_HOST: "repository.${SERVICE_DOMAIN}, www.repository.${SERVICE_DOMAIN}"
+      LETSENCRYPT_HOST: "repository.${SERVICE_DOMAIN}, www.repository.${SERVICE_DOMAIN}"
+      VIRTUAL_PORT: 8080
+    ports: !reset []
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    external: true
+    

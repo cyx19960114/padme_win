@@ -1,0 +1,158 @@
+services:
+  keycloak-postgres:
+    image: postgres:17
+    container_name: monitoring-keycloak-postgres
+    environment:
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_USER: keycloak
+      POSTGRES_DB: keycloak
+    volumes:
+      - "keycloak-potgres-data:/var/lib/postgresql/data"
+    networks:
+      - monitoring-net
+    restart: "no"
+
+  keycloak:
+    container_name: monitoring-keycloak
+    build: ./external/keycloak
+    command: "start-dev --import-realm"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: password
+      KC_DB_URL_HOST: keycloak-postgres
+      KC_DB_URL_PORT: 5432
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: 1234
+      # Adding KC_HOSTNAME=localhost and corresponding envs below, otherwise we get hostname clashes
+      # (e.g. expected keycloak got localhost). This is because tokens issued to the frontend
+      # use 'http://localhost:8080' in the 'iss' field of the decoded token, whereas the backend
+      # middleware which expects 'http://keycloak:8080'.
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - keycloak-postgres
+    networks:
+      - monitoring-net
+    restart: "no"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/127.0.0.1/8080;echo -e 'GET /health/ready HTTP/1.1\r\nhost: http://localhost\r\nConnection: close\r\n\r\n' >&3;if [ $? -eq 0 ]; then echo 'Healthcheck Successful';exit 0;else echo 'Healthcheck Failed';exit 1;fi;",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  postgres-db:
+    image: postgres:17
+    container_name: monitoring-db
+    volumes:
+      - monitoring-db-data:/var/lib/postgresql/data/pgdata
+    networks:
+      - monitoring-net
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: admin
+      POSTGRES_DB: pht_monitoring
+    restart: "no"
+
+  redis:
+    image: redis:alpine
+    container_name: monitoring-redis
+    networks:
+      - monitoring-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  backend:
+    container_name: monitoring-backend
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    command:
+      - fastapi
+      - run
+      - --reload
+      - "app/main.py"
+    develop:
+      watch:
+        - path: ./backend
+          action: sync
+          target: /app
+          ignore:
+            - ./backend/.venv
+            - .venv
+        - path: ./backend/pyproject.toml
+          action: rebuild
+    networks:
+      - monitoring-net
+    environment:
+      # Project
+      PROJECT_NAME: PADME Monitoring
+      DOMAIN: monitoring.padme-analytics.de
+      FRONTEND_HOST: http://localhost:5173
+      ENVIRONMENT: local
+      BACKEND_CORS_ORIGINS: "http://localhost,http://localhost:5173,https://localhost,https://localhost:5173"
+
+      # Database
+      DB_URL_HOST: postgres-db
+      DB_URL_PORT: 5432
+      DB_URL_DATABASE: pht_monitoring
+      DB_USERNAME: admin
+      DB_PASSWORD: password
+
+      # Redis
+      REDIS_HOST: "redis"
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+
+      # Keycloak
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_REALM: monitoring
+      KEYCLOAK_CLIENT_ID: backend
+      KEYCLOAK_CLIENT_SECRET: c38e81b8040285f7b0d39b7080ca2a4f
+    restart: "no"
+    depends_on:
+      postgres-db:
+        condition: service_started
+      keycloak:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    container_name: monitoring-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    command: npm run dev -- --host 0.0.0.0
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src:ro
+    networks:
+      - monitoring-net
+    environment:
+      FRONTEND_API_URL: http://localhost:8000
+      FRONTEND_KEYCLOAK_SERVER_URL: http://localhost:8080
+      FRONTEND_KEYCLOAK_REALM: monitoring
+      FRONTEND_KEYCLOAK_CLIENT_ID: frontend
+    restart: "no"
+
+networks:
+  monitoring-net:
+
+volumes:
+  monitoring-db-data:
+  keycloak-potgres-data:

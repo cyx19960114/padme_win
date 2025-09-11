@@ -1,0 +1,126 @@
+#!/usr/bin/env node
+var http = require("http");
+const setUpGuardFactory = require("../installationWizard/setUpGuard");
+const https = require("https");
+const fs = require("fs");
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+const setUpGuard = setUpGuardFactory("/lockfiledir");
+var port = normalizePort(process.env.PORT || "3030");
+
+setUpGuard(port).then(() => {
+  const { setPublicKey } = require("../config/keycloak-config");
+  setPublicKey()
+    .then(() => {
+      /**
+       * Module dependencies.
+       */
+      console.log("Start with main programm...");
+      var app = require("../app");
+      var debug = require("debug")("pht-web:server");
+
+      //skip self-signed-cert
+      // process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+
+      /**
+       * Get port from environment and store in Express.
+       */
+      app.set("port", port);
+
+      let server;
+      /**
+       * Create an HTTP or HTTPS server depending on whether SSL certs are provided
+       */
+      if (process.env.HTTPS_SERVER_KEY && process.env.HTTPS_SERVER_CERT) {
+        console.log("SSL certs provided, starting HTTPS server");
+        const options = {
+          key: fs.readFileSync(process.env.HTTPS_SERVER_KEY),
+          cert: fs.readFileSync(process.env.HTTPS_SERVER_CERT),
+        };
+        server = https.createServer(options, app);
+      } else {
+        console.log("No SSL certs provided, starting HTTP server");
+        server = http.createServer(app);
+      }
+
+      /**
+       * Listen on provided port, on all network interfaces.
+       */
+      server.listen(port);
+      server.on("error", onError);
+      server.on("listening", onListening);
+
+      /**
+       * Event listener for HTTP server "error" event.
+       */
+      function onError(error) {
+        if (error.syscall !== "listen") {
+          throw error;
+        }
+
+        var bind = typeof port === "string" ? "Pipe " + port : "Port " + port;
+
+        // handle specific listen errors with friendly messages
+        switch (error.code) {
+          case "EACCES":
+            console.error(bind + " requires elevated privileges");
+            process.exit(1);
+          case "EADDRINUSE":
+            console.error(bind + " is already in use");
+            process.exit(1);
+          default:
+            throw error;
+        }
+      }
+
+      /**
+       * Event listener for HTTP server "listening" event.
+       */
+      function onListening() {
+        var addr = server.address();
+        var bind =
+          typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
+        debug("Listening on " + bind);
+      }
+
+      /**
+       * Gracefully shutdown Express server
+       */
+      function shutdown() {
+        console.log("Received kill signal, shutting down gracefully...");
+        server.close(() => {
+          console.log("Closed out remaining connections");
+          process.exit(0);
+        });
+
+        setTimeout(() => {
+          console.error(
+            "Could not close connections in time, forcefully shutting down"
+          );
+          process.exit(1);
+        }, 10000);
+      }
+
+      process.on("SIGTERM", shutdown);
+      process.on("SIGINT", shutdown);
+    })
+    .catch((e) => console.error("Error starting the express server", e));
+});

@@ -1,0 +1,164 @@
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  CI_REGISTRY_IMAGE_METADATA_SERVICE: $CI_REGISTRY_IMAGE/phtmetadataprovider
+  CI_REGISTRY_IMAGE_METADATA_STORE: $CI_REGISTRY_IMAGE/phtmetadatastore
+  METADATA_STORE_IMAGE: $CI_REGISTRY_IMAGE_METADATA_STORE:$CI_COMMIT_BRANCH
+  DEPLOYMENT_RUNNER_TAGS: ""
+
+build_metadata_provider:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: build
+  before_script:
+    - apk update && apk add git
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Build phtmetadata provider image!"
+    - git submodule update --init --recursive
+    - docker build -t $CI_REGISTRY_IMAGE_METADATA_SERVICE:$CI_COMMIT_SHA .
+    - docker push $CI_REGISTRY_IMAGE_METADATA_SERVICE:$CI_COMMIT_SHA
+    - echo "build complete!"
+
+build_metadata_store:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: build
+  before_script:
+    - apk update && apk add git
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Build phtmetadata store image!"
+    - git submodule update --init --recursive
+    - docker build -t $CI_REGISTRY_IMAGE_METADATA_STORE:$CI_COMMIT_SHA -f Dockerfile_store .
+    - docker push $CI_REGISTRY_IMAGE_METADATA_STORE:$CI_COMMIT_SHA
+    - echo "build complete!"
+
+
+test_metadata_provider:
+  image: python:3.8
+  stage: test
+  needs: [build_metadata_provider, build_metadata_store]
+  variables:
+    CI_REGISTRY_IMAGE_METADATA_SERVICE: $CI_REGISTRY_IMAGE/phtmetadataprovider
+  before_script:
+    - apt-get update && apt-get install git
+  script:
+    - echo "Test phtmetadata!"
+    - git submodule init
+    - git submodule update
+    - pip install .
+    - pip install pytest pytest-cov
+#    - SKIP_SHACL_TESTS=True
+#    - export SKIP_SHACL_TESTS
+    - coverage run -m pytest --junitxml=report.xml
+    - coverage report
+    - coverage xml
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+      junit: report.xml
+
+
+deploy_metadata_provider_branch:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: deploy
+  needs: [test_metadata_provider]
+  before_script:
+    - apk update && apk add git
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - docker pull $CI_REGISTRY_IMAGE_METADATA_SERVICE:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE_METADATA_SERVICE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE_METADATA_SERVICE:$CI_COMMIT_BRANCH
+    - docker push $CI_REGISTRY_IMAGE_METADATA_SERVICE:$CI_COMMIT_BRANCH
+
+deploy_metadata_store_branch:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: deploy
+  needs: [test_metadata_provider]
+  before_script:
+    - apk update && apk add git
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - docker pull $CI_REGISTRY_IMAGE_METADATA_STORE:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE_METADATA_STORE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE_METADATA_STORE:$CI_COMMIT_BRANCH
+    - docker push $CI_REGISTRY_IMAGE_METADATA_STORE:$CI_COMMIT_BRANCH
+
+
+deploy_metata_provider_stable:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: deploy
+  needs: [test_metadata_provider]
+  variables:
+    REPOSITORY_ADDRESS: repository.$PROD_SERVICE_DOMAIN/stationsoftware
+  before_script:
+    - apk update && apk add git
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "commit was made to the master branch!"
+    - docker pull $CI_REGISTRY_IMAGE_METADATA_SERVICE:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE_METADATA_SERVICE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE_METADATA_SERVICE:stable
+    - docker push $CI_REGISTRY_IMAGE_METADATA_SERVICE:stable
+    - echo "push to harbor"
+    - echo "$HARBOR_RELEASE_PASSWORD" | docker login --username $HARBOR_RELEASE_USERNAME --password-stdin $REPOSITORY_ADDRESS
+    - docker tag $CI_REGISTRY_IMAGE_METADATA_SERVICE:stable $REPOSITORY_ADDRESS/phtmetadataprovider:latest
+    - docker push $REPOSITORY_ADDRESS/phtmetadataprovider:latest
+  rules:
+    - if: $SHOULD_DEPLOY_PROVIDER_IMAGE == "true" && $CI_COMMIT_BRANCH == "main"
+
+.deploy_metadata_store:
+  image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/deployment/image:main
+  stage: deploy
+  environment:
+    url: https://metadata.${SERVICE_DOMAIN}
+  before_script:
+    - ssh-add <(echo "$DEPLOYMENT_TARGET_SSH_KEY")
+  script:
+    # Build compose file
+    - substitute_envs.sh docker-compose.template.yml docker-compose.yml
+    # Clone the compose file to the host, then login to host and pull + docker compose up
+    - ssh $DEPLOYMENT_TARGET_HOST "mkdir -p $DEPLOYMENT_TARGET_DIR"
+    - scp docker-compose.yml $DEPLOYMENT_TARGET_HOST:$DEPLOYMENT_TARGET_DIR
+    - ssh $DEPLOYMENT_TARGET_HOST "echo '$CI_JOB_TOKEN' | docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY"
+    - ssh $DEPLOYMENT_TARGET_HOST "cd $DEPLOYMENT_TARGET_DIR && docker compose pull && docker compose up -d"
+  tags:
+    - $DEPLOYMENT_RUNNER_TAGS
+
+deploy_metadata_store_production:
+  extends: .deploy_metadata_store
+  environment:
+    name: production
+  only:
+    - main
+
+deploy_metadata_store_staging:
+  extends: .deploy_metadata_store
+  environment:
+    name: staging
+  only:
+    - prerelease
+
+.pages:
+  image: node:latest
+  stage: deploy
+  script:
+    - npm install --global apidoc
+    - apidoc --no-color -o public -i metadataInfrastructure 
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$CI_COMMIT_BRANCH=="main"'

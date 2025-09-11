@@ -1,0 +1,50 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  CI_REGISTRY_IMAGE_TRAIN_CREATOR: $CI_REGISTRY_IMAGE/train-creation-wizard
+  TRAIN_CREATOR_IMAGE: $CI_REGISTRY_IMAGE_TRAIN_CREATOR:$CI_COMMIT_BRANCH
+
+build_train_creator:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: build
+  before_script:
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Building Train creator"
+    - docker build --pull -t $CI_REGISTRY_IMAGE_TRAIN_CREATOR:$CI_COMMIT_BRANCH .
+    - docker push $CI_REGISTRY_IMAGE_TRAIN_CREATOR:$CI_COMMIT_BRANCH
+    - echo "Train creator build complete"
+
+.deploy-train_creator:
+  environment:
+    url: https://creator.${SERVICE_DOMAIN}
+  image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/deployment/image:main
+  stage: deploy
+  before_script:
+    - ssh-add <(echo "$DEPLOYMENT_TARGET_SSH_KEY")
+  script:
+    # Build compose file
+    - substitute_envs.sh docker-compose.template.yml docker-compose.yml
+    # Clone the compose file to the host, then login to host and pull + docker compose up
+    - ssh $DEPLOYMENT_TARGET_HOST "mkdir -p $DEPLOYMENT_TARGET_DIR"
+    - scp docker-compose.yml $DEPLOYMENT_TARGET_HOST:$DEPLOYMENT_TARGET_DIR
+    - ssh $DEPLOYMENT_TARGET_HOST "echo '$CI_JOB_TOKEN' | docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY"
+    - ssh $DEPLOYMENT_TARGET_HOST "cd $DEPLOYMENT_TARGET_DIR && docker compose pull && docker compose up -d"
+
+deploy_train_creator_production:
+  extends: .deploy-train_creator
+  environment:
+    name: production
+  only:
+    - main
+
+deploy_train_creator_staging:
+  extends: .deploy-train_creator
+  environment:
+    name: staging
+  only:
+    - prerelease

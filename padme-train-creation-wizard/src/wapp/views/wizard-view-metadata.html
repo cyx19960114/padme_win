@@ -1,0 +1,50 @@
+<section id="wizard-view-metadata" class="wizard__page page__view-metadata">
+    <div class="m_info">
+        <table id="m_table">
+            <tbody>
+                <tr>
+                    <td><label for="pname" class="label_pname">Project Name in Repository<span style="color:red">*</span>
+                          <div class="tooltip"> &#9432; <span class="tooltiptext">No whitespaces in the name.</span></div>
+                        </label>
+                    </td>
+                    <td><input type="text" id="pname" name="pname" class="pname"></td>
+                </tr>
+                <tr>
+                    <td><label class="label_access">Access Type<span style="color:red">*</span></label></td>
+                    <td><input type="radio" name="ptype" value="Public">Official Train Store
+                        <input type="radio" name="ptype" value="Private">Private Train Store</td>
+                </tr>
+                <tr class="optional_row">
+                    <td><label class="label_url">Official Train Store URL</label></td>
+                    <td><a id="git_link_metadata" target="_blank" rel="noopener noreferrer">GitLab URL</a></td>
+                </tr>
+                <tr>
+                    <td><label for="pdesc" class="label_pdesc">Project Description<span style="color:red">*</span></label></td>
+                    <td><textarea id="pdesc" name="pdesc" class="pdesc" rows="2" cols="35"></textarea></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div><h4 style="text-align: center;">Additional Information</h4></div>
+    <div style="text-align: center;"><a href="#" id="helpModal">Know more!</a></div>
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <p>
+              <h3>Guidelines for providing Additional Metadata:</h3>
+              <p>Use this form to add additional metadata to the Train image as a key-value pair. For example:</p>
+              <ul>
+                  <li><i>train_creator</i> : <i>name_of_the_creator</i></li>
+                  <li><i>published_date</i> : <i>current_date_time</i></li>
+                  <li><i>analysis_algorithm</i> : <i>algorithm_name</i></li>
+              </ul>
+              <p>Click on <b>Add New Row</b> to add more metadata as key-value pair.</p>
+          </p>
+        </div>
+    </div>
+    <div class="a_info">
+        <table id="a_table">
+        </table>
+    </div>
+    <a href="#" id="insert-more">Add New Row</a>
+</section>

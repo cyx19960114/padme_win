@@ -1,0 +1,68 @@
+<section id="wizard-choose-creator-path" class="wizard__page">
+  <div>Choose train to create:</div>
+
+  <br />
+
+  <form id="train-type-form">
+    <label for="incremental-learning">
+      <input
+        type="radio"
+        id="incremental-learning"
+        name="train-type"
+        value="incremental"
+        checked
+      />
+      Incremental Learning
+    </label>
+    <br />
+
+    <label for="federated-learning">
+      <input
+        type="radio"
+        id="federated-learning"
+        name="train-type"
+        value="federated-learning"
+      />
+      Federated Learning
+    </label>
+    <br />
+
+    <label for="federated-aggregation">
+      <input
+        type="radio"
+        id="federated-aggregation"
+        name="train-type"
+        value="federated-aggregation"
+      />
+      Federated Aggregation
+    </label>
+    <br />
+  </form>
+
+  <br />
+
+  <div style="text-align: center">
+    <a href="#" id="helpModal">Guidelines</a>
+  </div>
+
+  <div id="myModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h3>Guidelines for Train Types:</h3>
+      <ul>
+        <li>
+          <b>Incremental Learning</b> - Create train for incremental learning
+          that runs on each station
+        </li>
+        <li>
+          <b>Federated Learning</b> - Create train for federated learning that
+          runs on each station
+        </li>
+        <li>
+          <b>Federated Aggregation</b> - Create train for federated aggregation
+          that runs on the central service
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>

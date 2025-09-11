@@ -1,0 +1,34 @@
+stages:
+  - deploy
+
+merge_custom_config:
+  image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/deployment/image:main
+  stage: deploy
+  script:
+    # Merge the compose template file with any custom user config, the template file is updated to the merged compose file
+    - chmod +x ./scripts/create-merged-compose.sh && ./scripts/create-merged-compose.sh docker-compose.template.yml "$CUSTOM_COMPOSE_CONFIG"
+  artifacts:
+    paths:
+      - docker-compose.template.yml
+  only:
+    - main
+
+deploy_train_depot:
+  environment:
+    url: https://depot.${SERVICE_DOMAIN}
+    name: production
+  image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/deployment/image:main
+  stage: deploy
+  needs: [merge_custom_config]
+  before_script:
+    - ssh-add <(echo "$DEPLOYMENT_TARGET_SSH_KEY")
+  script:
+    # Build compose file
+    - substitute_envs.sh docker-compose.template.yml docker-compose.yml
+    # Clone the compose file to the host, then login to host and pull + docker compose up
+    - ssh $DEPLOYMENT_TARGET_HOST "mkdir -p $DEPLOYMENT_TARGET_DIR"
+    - scp docker-compose.yml $DEPLOYMENT_TARGET_HOST:$DEPLOYMENT_TARGET_DIR
+    - ssh $DEPLOYMENT_TARGET_HOST "echo '$CI_JOB_TOKEN' | docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY"
+    - ssh $DEPLOYMENT_TARGET_HOST "cd $DEPLOYMENT_TARGET_DIR && docker compose pull && docker compose up -d"
+  only:
+    - main

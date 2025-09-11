@@ -1,0 +1,51 @@
+<section
+  id="appstore-show-train-images"
+  class="appstore__page page__show-train-images"
+>
+  <div id="register_page" style="max-width: 500px; margin: auto">
+    <h2>Logon to PHT Storehouse Platform</h2>
+    <div class="input-container">
+      <i class="fa fa-user icon"></i>
+      <input
+        class="input-field"
+        type="text"
+        placeholder="GitLab Username"
+        name="usrnm"
+        id="usrnm"
+      />
+    </div>
+    <div class="input-container">
+      <i class="fa fa-key icon"></i>
+      <input
+        class="input-field"
+        type="text"
+        placeholder="Personal Access Token"
+        name="psw"
+        id="psw"
+      />
+    </div>
+    <button type="submit" class="btn" id="login-btn">Login</button><br />
+    <button id="helpModal" class="btn">Instructions</button>
+    <div id="myModal" class="modal">
+      <!-- Modal content -->
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Instructions:</h3>
+        <ul>
+          <li>Please use your Depot GitLab username.</li>
+          <li>
+            Create and provide a personal access token with <b>api</b> scope in
+            <i>Preferences > Access Tokens</i> path.
+          </li>
+          <li>
+            Once provided, the token will be stored server side so you do not
+            have to enter it every time. You may revoke the token anytime.
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div id="auth-loading" style="display: none">
+    <img src="images/loading.gif" />
+  </div>
+</section>

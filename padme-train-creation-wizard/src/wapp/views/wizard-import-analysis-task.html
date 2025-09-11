@@ -1,0 +1,30 @@
+<section id="wizard-import-task" class="wizard__page page__import-task">
+  <div>
+    <img src="images/import-symbol.png" />
+  </div>
+  <div>Upload a data analysis task (.py, .R or .zip)</div>
+  <input type="file" id="import-task-file" name="file" style="display:none;">
+  <label for="import-task-file" class="page__import-task-btn">Select file</label>
+  <div id="import-task-filename" class="page__import-task-filename"></div>
+  <div style="text-align: center;"><a href="#" id="helpModal">Guidelines</a></div>
+  <div id="myModal" class="modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <p>
+              <h3>Guidelines for data analysis algorithm:</h3>
+              <ul>
+                  <li>Save intermediate results in a file as the console output is lost once the Train execution is complete.</li>
+                  <li>Ensure that the files created during execution have different names (add random prefix or suffix) or are <br>
+                    saved in a different directory for each Station as they are overwritten on visiting multiple Stations.</li>
+                  <li>Ensure that the connection parameters are added in the algorithm, if required.</li>
+                  <li>Verify the connection parameters for typos.</li>
+              </ul>
+              <p>Click on <b>Next</b> after uploading the data analysis algorithm.</p>
+          </p>
+        </div>
+    </div>
+  <div id="import-task-error"></div>
+  <div id="import-task-loading" style="display: none;">
+    <img src="images/loading.gif" />
+  </div>
+</section>

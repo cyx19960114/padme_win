@@ -1,0 +1,18 @@
+stages:
+  - build
+
+variables:
+  CI_REGISTRY_IMAGE_DIND: $CI_REGISTRY_IMAGE/dind
+
+build_dind:
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  stage: build
+  before_script:
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Building Dind"
+    - docker build --pull -t $CI_REGISTRY_IMAGE_DIND:$CI_COMMIT_BRANCH Dind
+    - docker push $CI_REGISTRY_IMAGE_DIND:$CI_COMMIT_BRANCH
+    - echo "Dind build complete"

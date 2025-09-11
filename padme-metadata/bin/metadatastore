@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+"""The metadata store executable
+The metata store is configured via environment variables prefixed with MSTORE_:
+GRAPHSTORAGE: ["SQL"|"BERKELEY"] The storage strategy for graphs, Default is SQL
+    GRAPHSQL: If SQL is choosen, the URL of the sql database
+    GRAPHBERKELEY: If BERKELEY is choosen, the URL of the db
+HOST: The prefix of the host. This URL is used as a prefix for the IRIs of entities.
+REGISTRYKEYS: A list of keys used by station registrys. A key from this list is needed to enroll new stations.
+
+DATABASE: The sql database for stations information such as secret keys
+PORT: The Port on which the HTTP interface should listen
+"""
+
+import logging
+import os
+
+from rdflib import Graph
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
+
+from metadataInfrastructure.GraphModel import GraphModel
+from metadataInfrastructure.TrainStoreHTTPInterface import create_router, InterfaceConfig, DocumentViewConfiguration, EventHandlerConfiguration, QueryHandlerConfiguration, SecretKeyHandlerConfiguration, StationFeedHandlerConfiguration
+
+from metadataInfrastructure.StationManager import StationManager
+from metadataInfrastructure.EventModel import EventManager
+from metadataInfrastructure.GraphContainer import PrefixGuardValidator
+
+logging.basicConfig()
+logger = logging.getLogger("metadatastore")
+logger.setLevel(logging.INFO)
+# consts
+ENV_PREFIX = "MSTORE_"
+
+logger.info("Starting up metadatastore...")
+
+# get configs:
+GRAPH_STORAGE_BACKEND = os.getenv(ENV_PREFIX + "GRAPHSTORAGE", "SQL")
+HOST_URL = os.getenv(
+    ENV_PREFIX + "HOST", "http://example.org")
+REGISTRY_KEYS = os.getenv(ENV_PREFIX + "REGISTRYKEYS", "").split(",")
+TRAIN_CLASS_PROTECTION_KEYS = os.getenv(ENV_PREFIX + "TRAINCLASSKEYS", "").split(",")
+DATABASE_URL = os.getenv(ENV_PREFIX + "DATABASE", "sqlite://")
+PORT = int(os.getenv(ENV_PREFIX + "PORT", 8080))
+
+# get the desired storage backend
+graph_model = None
+if GRAPH_STORAGE_BACKEND == "SQL":
+    SQL_URL = os.getenv(ENV_PREFIX + "GRAPHSQL", "sqlite://")
+    graph_model = GraphModel.with_sql(SQL_URL)
+if GRAPH_STORAGE_BACKEND == "BERKELEY":
+    DBPATH = os.getenv(ENV_PREFIX + "GRAPHBERKELEY")
+    graph_model = GraphModel.with_berkleydb(DBPATH)
+if graph_model is None:
+    logger.error("No persistence backend provided. Exit...")
+    exit(1)
+
+# create the station manager
+station_manager = StationManager.with_connection(DATABASE_URL)
+
+station_manager.create_tables()
+
+# create event manager
+event_manager = EventManager(station_manager.session, station_manager.engine)
+
+event_manager.create_tables()
+# load shacl graph
+# TODO: load the shacl graph from a user provided file or url
+shacl_graph = Graph()
+
+# create the prefix guard validator
+pgv = PrefixGuardValidator(HOST_URL)
+
+
+interface_configuration = InterfaceConfig(
+    StationFeedHandlerConfiguration(
+        station_manager,
+        graph_model,
+        pgv,
+        shacl_graph
+    ),
+    SecretKeyHandlerConfiguration(
+        station_manager,
+        registry_keys=REGISTRY_KEYS
+    ),
+    QueryHandlerConfiguration(
+        graph_model
+    ),
+    DocumentViewConfiguration(
+        graph_model,
+        HOST_URL,
+        lambda x: "http://station-registry.de/"+x,
+        station_manager,
+        event_manager,
+    ),
+    DocumentViewConfiguration(
+        graph_model,
+        HOST_URL,
+        lambda x: "https://git.rwth-aachen.de/padme-development/"+x,
+        None,
+        None,
+        TRAIN_CLASS_PROTECTION_KEYS
+    ),
+    EventHandlerConfiguration(
+        event_manager,
+        station_manager,
+        HOST_URL
+    )
+)
+
+router = create_router(interface_configuration)
+
+logger.info(f"Initialization finished. Start listening on port {PORT}")
+server = HTTPServer(router)
+server.listen(PORT)
+
+IOLoop.current().start()

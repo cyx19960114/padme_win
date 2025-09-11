@@ -1,0 +1,27 @@
+# depot_compose_version: 1.0
+
+version: '3.8'
+services:
+  gitlab:
+    image: '${GITLAB_IMAGE}'
+    restart: always
+    hostname: 'depot.${SERVICE_DOMAIN}'
+    environment:
+      VIRTUAL_HOST: "depot.${SERVICE_DOMAIN}, www.depot.${SERVICE_DOMAIN}, registry.${SERVICE_DOMAIN}, www.registry.${SERVICE_DOMAIN}"
+      LETSENCRYPT_HOST: "depot.${SERVICE_DOMAIN}, www.depot.${SERVICE_DOMAIN}, registry.${SERVICE_DOMAIN}, www.registry.${SERVICE_DOMAIN}"
+      VIRTUAL_PORT: 80
+      GITLAB_LOG_LEVEL: warn
+    volumes:
+      - '${GITLAB_VOLUME_DIR}/config:/etc/gitlab'
+      - '${GITLAB_VOLUME_DIR}/logs:/var/log/gitlab'
+      - '${GITLAB_VOLUME_DIR}/data:/var/opt/gitlab'
+    shm_size: '256m'
+    networks:
+      proxynet:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"        
+networks:
+  proxynet:
+    external: true

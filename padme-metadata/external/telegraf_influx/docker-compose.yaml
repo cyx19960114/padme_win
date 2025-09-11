@@ -1,0 +1,41 @@
+version: "3.3"
+services:
+  telegraf:
+    image: telegraf
+    networks:
+      - metadata
+      - pht-net
+    volumes:
+      - "./telegraf.conf:/etc/telegraf/telegraf.conf"
+      - stationdeploymentfiles_pht-dind-certs-client:/certs
+    depends_on:
+      - "influx"
+  grafana:
+    image: grafana/grafana
+    ports: 
+      - "3000:3000"
+    networks:
+      - metadata
+    depends_on:
+      - "influx"
+  influx:
+    networks:
+      metadata:
+        aliases:
+          - influxdb
+    volumes:
+      - influxvol:/var/lib/influxdb
+    environment:
+      - INFLUXDB_HTTP_FLUX_ENABLED=true
+    ports:
+      - "8086:8086"
+      - "8083:8083"
+    image: "quay.io/influxdb/influxdb:v2.0.1"
+networks:
+  metadata:
+  pht-net:
+    external: true
+volumes:
+  stationdeploymentfiles_pht-dind-certs-client:
+    external: true
+  influxvol:

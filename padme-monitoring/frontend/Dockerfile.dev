@@ -1,0 +1,19 @@
+FROM node:23-alpine
+
+# Set the working directory
+WORKDIR /app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install project dependencies
+RUN npm install
+
+# Copy project files
+COPY . .
+
+# Expose port for Vite
+EXPOSE 5173
+
+# Default command to start development server
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

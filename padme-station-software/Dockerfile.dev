@@ -1,0 +1,31 @@
+FROM node:latest as build
+
+# Create app directory
+WORKDIR /usr/src/app
+
+# Install app dependencies
+# A wildcard is used to ensure both package.json AND package-lock.json are copied
+# where available (npm@5+)
+COPY package*.json ./
+RUN npm install
+
+# Install dependencies for wizard UI
+COPY wizard-frontend/package*.json ./wizard-frontend/
+RUN npm --prefix wizard-frontend install
+
+# Install dependencies for main UI
+COPY station-frontend/package*.json ./station-frontend/
+RUN npm --prefix station-frontend install
+
+FROM gcr.io/projectsigstore/cosign:v2.2.1 as cosign-bin
+FROM node:18.18.2-bullseye-slim
+
+WORKDIR /usr/src/app
+
+COPY --from=cosign-bin /ko-app/cosign /usr/local/bin/cosign
+COPY --from=build /usr/src/app/node_modules /usr/src/app/node_modules
+COPY . .
+
+RUN mkdir /lockfiledir
+
+CMD ["npm", "run", "dev"]

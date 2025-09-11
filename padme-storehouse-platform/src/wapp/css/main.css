@@ -1,0 +1,477 @@
+/* generic */
+
+@font-face {
+	font-family: open-sans-font;
+	src: url("OpenSans-Regular.ttf");
+}
+
+:root {
+	--theme: #800000;
+	--button-active: #494bab;
+	--button-hover: #2f3191;
+	--button-disabled: #AAAAAA;
+}
+
+* {
+	box-sizing: border-box;
+	/* outline: 1px solid #F00; */
+}
+
+html,
+body {
+	height: 100vh;
+	width: 100%;
+	padding: 0;
+	margin: 0;
+	font-family: open-sans-font;
+	font-size: 16px;
+	display: flex;
+	flex-direction: column;
+	overflow: auto;
+}
+
+
+/* elements */
+
+
+/* elements -- layout */
+
+header {
+	background-color: var(--theme);
+	color: white;
+	font-size: 1.2em;
+	height: 8%;
+	width: 100%;
+}
+
+main {
+	background-color: #CACACA;
+	height: 92%;
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
+
+
+/* modules */
+
+
+/*	module -- header */
+
+.header-wrapper {
+	height: 100%;
+	width: 100%;
+	padding: 1em;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+}
+
+.header__btn {
+	height: 100%;
+	width: auto;
+	border: 0;
+	outline: 0;
+	color: #FFFFFF;
+	background-color: var(--theme);
+	font-size: 1em;
+	cursor: pointer;
+}
+.header__btn:hover {
+	color: #1d0202;
+}
+
+/*	module -- main */
+
+.appstore {
+	width: 70%;
+	height: 95%;
+	background-color: #FFFFFF;
+	display: flex;
+	flex-direction: column;
+}
+
+.appstore__title {
+	width: 100%;
+	height: 10%;
+	font-size: 1.2em;
+	border-bottom: 0.2em solid #EEEEEE;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+}
+
+.appstore__content {
+	width: 100%;
+	height: 80%;
+}
+
+.appstore__page {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 0.5em;
+}
+
+.appstore__nav {
+	width: 100%;
+	height: 10%;
+	padding: 0 2em 0 2em;
+	background-color: #EEEEEE;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.appstore__nav__btn {
+	height: 100%;
+	width: auto;
+	border: 0;
+	outline: 0;
+	color: #555555;
+	background-color: #EEEEEE;
+	font-size: 1em;
+	cursor: pointer;
+}
+
+.appstore__nav__btn:hover {
+	color: #222222;
+}
+
+.appstore__nav__btn-active {
+	color: var(--button-active);
+}
+
+.appstore__nav__btn-active:hover {
+	color: var(--button-hover);
+}
+
+.appstore__nav__btn-disabled {
+	color: var(--button-disabled);
+}
+
+.appstore__nav__btn-disabled:hover {
+	color: var(--button-disabled);
+	cursor: not-allowed;
+}
+
+.appstore-wrapper__img {
+	width: 100%;
+}
+
+/*	module -- appstore: show all train images */
+
+.grid_cols {
+  float: left;
+  width: 50%;
+  padding: 10px;
+}
+
+.grid_img {
+  list-style-type: none;
+  border: 1px solid #eee;
+  margin: 0;
+  padding: 0;
+  -webkit-transition: 0.3s;
+  transition: 0.3s;
+}
+
+.grid_img:hover {
+  box-shadow: 0 8px 12px 0 rgba(0,0,0,0.2)
+}
+
+.grid_img .grid_header {
+  background-color: #555d50;
+  color: white;
+  font-size: 12px;
+}
+
+.grid_img li {
+  border-bottom: 0.5px solid #eee;
+  padding: 8px;
+  text-align: center;
+}
+
+.grid_img .grid_grey {
+  background-color: #eee;
+  font-size: 10px;
+}
+
+.grid_button {
+  background-color: #04AA6D;
+  border: none;
+  color: white;
+  padding: 5px 12px;
+  text-align: center;
+  text-decoration: none;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+@media only screen and (max-width: 600px) {
+  .grid_cols {
+    width: 100%;
+  }
+}
+
+.page__show-train-images, .page__show-git-branches {
+  width: 100%;
+  height: 100%;
+  display: inline-grid;
+  overflow-y: scroll;
+  justify-content: center;
+  padding: 1.5em;
+}
+
+/* module -- appstore: show train summary*/
+.collapsible {
+  background-color: #777;
+  color: white;
+  cursor: pointer;
+  padding: 10px;
+  width: 100%;
+  border: none;
+  text-align: center;
+  outline: none;
+  font-size: 15px;
+}
+
+.active, .collapsible:hover {
+  background-color: #555;
+}
+
+.collapsible:after {
+  content: '\002B';
+  color: white;
+  font-weight: bold;
+  float: right;
+  margin-left: 5px;
+}
+
+.active:after {
+  content: "\2212";
+}
+
+.content {
+  padding: 5px 18px;
+  max-height: 0;
+  overflow: auto;
+  transition: max-height 0.2s ease-out;
+}
+
+#image_connection_params, #image_metadata, #image_feedback {
+  border: 1px solid black;
+  border-collapse: collapse;
+  display: block;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+#image_connection_params th, #image_connection_params td {
+  padding: 0.5em;
+  border: 1px solid black;
+}
+
+#image_connection_params th {
+  background-color: #f2f2f2;
+}
+
+#image_metadata th, #image_metadata td {
+  padding: 0.5em;
+  border: 1px solid black;
+}
+
+#image_metadata th {
+  background-color: #f2f2f2;
+}
+
+#image_feedback th, #image_feedback td {
+  padding: 0.5em;
+  border: 1px solid black;
+}
+
+#image_feedback th {
+  background-color: #f2f2f2;
+}
+
+/* module -- appstore: authentication page */
+.input-container {
+  display: -ms-flexbox; /* IE10 */
+  display: flex;
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+.icon {
+  padding: 10px;
+  background: #800000;
+  color: white;
+  min-width: 50px;
+  text-align: center;
+}
+
+.input-field {
+  width: 100%;
+  padding: 10px;
+  outline: none;
+}
+
+.input-field:focus {
+  border: 2px solid #800000;
+}
+
+/* Set a style for the submit button */
+.btn {
+  background-color: #800000;
+  color: white;
+  padding: 15px 20px;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  opacity: 0.9;
+  margin: 5px 0px 5px 0px;
+}
+
+.btn:hover {
+  opacity: 1;
+}
+
+/* Help modal css effects */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  padding-top: 120px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content */
+.modal-content {
+  background-color: #fefefe;
+  margin: auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+}
+
+/* The Close Button */
+.close {
+  color: #aaaaaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* module -- user feedback */
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 20px;
+    width: 450px;
+    word-wrap: break-word;
+    background-color: #fff;
+    background-clip: border-box;
+    border-radius: 6px;
+    -moz-box-shadow: 0px 0px 5px 0px rgba(212, 182, 212, 1)
+}
+.comment-box {
+    padding: 5px
+}
+.comment-area textarea {
+    border: 1px solid #ad9f9f
+}
+.form-control:focus {
+    color: #495057;
+    background-color: #fff;
+    border-color: #ffffff;
+    outline: 0;
+    box-shadow: 0 0 0 1px rgb(255, 0, 0) !important
+}
+.rating {
+    display: flex;
+    margin-top: -10px;
+    flex-direction: row-reverse;
+    margin-left: -4px;
+    float: left
+}
+.rating>input {
+    display: none
+}
+.rating>label {
+    position: relative;
+    width: 19px;
+    font-size: 25px;
+    color: #ff0000;
+    cursor: pointer
+}
+.rating>label::before {
+    content: "\2605";
+    position: absolute;
+    opacity: 0
+}
+.rating>label:hover:before,
+.rating>label:hover~label:before {
+    opacity: 1 !important
+}
+.rating>input:checked~label:before {
+    opacity: 1
+}
+.rating:hover>input:checked~label:before {
+    opacity: 0.4
+}
+
+/* approval button - styling changes */
+.page__approve-train-btn {
+    border: 0;
+    outline: 0;
+    color: #FFFFFF;
+    background-color: #800000;
+    font-size: 1em;
+    padding: 0.5em 2em;
+    margin: 1em 0 0.5em 0;
+    cursor: pointer;
+}
+
+.page__approve-train-btn:hover {
+    background-color: #800000;
+}
+
+/* module - show merge request info */
+#git_mr_table {
+  border: 1px solid black;
+  border-collapse: collapse;
+  display: block;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+#git_mr_table th, #git_mr_table td {
+  padding: 0.5em;
+  border: 1px solid black;
+}
+
+#git_mr_table th {
+  background-color: #f2f2f2;
+}

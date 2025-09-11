@@ -1,0 +1,478 @@
+/* generic */
+
+@font-face {
+  font-family: open-sans-font;
+  src: url("OpenSans-Regular.ttf");
+}
+
+:root {
+  --theme: #494bab;
+  --button-active: #494bab;
+  --button-hover: #2f3191;
+  --button-disabled: #aaaaaa;
+}
+
+* {
+  box-sizing: border-box;
+  /* outline: 1px solid #F00; */
+}
+
+html,
+body {
+  height: 100vh;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  font-family: open-sans-font;
+  font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+/* elements */
+
+/* elements -- layout */
+
+header {
+  background-color: var(--theme);
+  color: white;
+  font-size: 1.2em;
+  height: 8%;
+  width: 100%;
+}
+
+main {
+  background-color: #cacaca;
+  height: 92%;
+  width: 100%;
+  padding: 1em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* modules */
+
+/*	module -- header */
+
+.header-wrapper {
+  height: 100%;
+  width: 100%;
+  padding: 1em;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.header__btn {
+  height: 100%;
+  width: auto;
+  border: 0;
+  outline: 0;
+  color: #ffffff;
+  background-color: var(--theme);
+  font-size: 1em;
+  cursor: pointer;
+}
+.header__btn:hover {
+  color: #1d0202;
+}
+/*	module -- main */
+
+.wizard {
+  width: 70%;
+  height: 95%;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+.wizard__title {
+  width: 100%;
+  height: 10%;
+  font-size: 1.2em;
+  border-bottom: 0.2em solid #eeeeee;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.wizard__content {
+  width: 100%;
+  height: 80%;
+}
+
+.wizard__page {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1em;
+}
+
+.wizard__nav {
+  width: 100%;
+  height: 10%;
+  padding: 0 2em 0 2em;
+  background-color: #eeeeee;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wizard__nav__btn {
+  height: 100%;
+  width: auto;
+  border: 0;
+  outline: 0;
+  color: #555555;
+  background-color: #eeeeee;
+  font-size: 1em;
+  cursor: pointer;
+}
+
+.wizard__nav__btn:hover {
+  color: #222222;
+}
+
+.wizard__nav__btn-active {
+  color: var(--button-active);
+}
+
+.wizard__nav__btn-active:hover {
+  color: var(--button-hover);
+}
+
+.wizard__nav__btn-disabled {
+  color: var(--button-disabled);
+}
+
+.wizard__nav__btn-disabled:hover {
+  color: var(--button-disabled);
+  cursor: not-allowed;
+}
+
+.wizard-wrapper__img {
+  width: 100%;
+}
+
+/*	module -- wizard: import task */
+
+.page__import-task {
+  justify-content: center;
+}
+
+.page__import-task-btn {
+  border: 0;
+  outline: 0;
+  color: #ffffff;
+  background-color: var(--button-active);
+  font-size: 1em;
+  padding: 0.5em 2em;
+  margin: 1em 0 0.5em 0;
+  cursor: pointer;
+}
+
+.page__import-task-btn:hover {
+  background-color: var(--button-hover);
+}
+
+.page__import-task-filename {
+  margin: 0.5em;
+}
+
+.page__import-task-error {
+  color: red;
+}
+
+/*	module -- wizard: import requirements file */
+
+.page__import-req {
+  justify-content: center;
+}
+
+.page__import-req-btn {
+  border: 0;
+  outline: 0;
+  color: #ffffff;
+  background-color: var(--button-active);
+  font-size: 1em;
+  padding: 0.5em 2em;
+  margin: 1em 0 0.5em 0;
+  cursor: pointer;
+}
+
+.page__import-req-btn:hover {
+  background-color: var(--button-hover);
+}
+
+.page__import-req-filename {
+  margin: 0.5em;
+}
+
+.page__import-req-error {
+  color: red;
+}
+
+/*	module -- wizard: import dockerfile */
+
+.page__import-dockerfile {
+  justify-content: center;
+}
+
+.page__import-dockerfile-btn {
+  border: 0;
+  outline: 0;
+  color: #ffffff;
+  background-color: var(--button-active);
+  font-size: 1em;
+  padding: 0.5em 2em;
+  margin: 1em 0 0.5em 0;
+  cursor: pointer;
+}
+
+.page__import-dockerfile-btn:hover {
+  background-color: var(--button-hover);
+}
+
+.page__import-dockerfile-filename {
+  margin: 0.5em;
+}
+
+.page__import-dockerfile-error {
+  color: red;
+}
+
+/*	module -- wizard: view connection credentials */
+
+.page__view-connection {
+  overflow-y: auto;
+}
+
+.table_inputs {
+  text-align: left;
+}
+
+input[type="text"] {
+  background: #ecf0f3;
+  padding: 5px;
+  padding-left: 15px;
+  margin: 3px;
+  height: 40px;
+  font-size: 12px;
+  border-radius: 20px;
+  box-shadow: inset 6px 6px 6px #cbced1, inset -6px -6px 6px white;
+}
+
+#wizard-view-connection {
+  overflow: auto;
+}
+
+.page__view-metadata,
+.page__view-connection {
+  width: 100%;
+  height: 100%;
+  display: inline-grid;
+  overflow-y: scroll;
+  justify-content: center;
+  padding: 1.5em;
+}
+
+.a_info {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#insert-more {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.collapsible {
+  background-color: #777;
+  color: white;
+  cursor: pointer;
+  padding: 18px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 15px;
+}
+
+.active,
+.collapsible:hover {
+  background-color: #555;
+}
+
+.collapsible:after {
+  content: "\002B";
+  color: white;
+  font-weight: bold;
+  float: right;
+  margin-left: 5px;
+}
+
+.active:after {
+  content: "\2212";
+}
+
+.content {
+  padding: 5px 18px;
+  max-height: 0;
+  overflow: auto;
+  transition: max-height 0.2s ease-out;
+}
+
+#pht_connection_params,
+#pht_metadata {
+  border: 1px solid black;
+  border-collapse: collapse;
+  display: block;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+#pht_connection_params th,
+#pht_connection_params td {
+  padding: 0.5em;
+  border: 1px solid black;
+}
+
+#pht_connection_params th {
+  background-color: #f2f2f2;
+}
+
+#pht_metadata th,
+#pht_metadata td {
+  padding: 0.5em;
+  border: 1px solid black;
+}
+
+#pht_metadata th {
+  background-color: #f2f2f2;
+}
+
+#git_commit_table {
+  border: 1px solid black;
+  border-collapse: collapse;
+  display: block;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+#git_commit_table th,
+#git_commit_table td {
+  padding: 0.5em;
+  border: 1px solid black;
+}
+
+#git_commit_table th {
+  background-color: #f2f2f2;
+}
+
+/* Tooltip container */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+
+  /* Position the tooltip text */
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+
+  /* Fade in tooltip */
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+/* Tooltip arrow */
+.tooltip .tooltiptext::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Help modal css effects */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  padding-top: 120px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0, 0, 0); /* Fallback color */
+  background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+}
+
+/* Modal Content */
+.modal-content {
+  background-color: #fefefe;
+  margin: auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 60%;
+}
+
+/* The Close Button */
+.close {
+  color: #aaaaaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.page__gitlab-btn {
+  border: 0;
+  outline: 0;
+  color: #ffffff;
+  background-color: var(--button-active);
+  font-size: 1em;
+  padding: 0.5em 2em;
+  margin: 1em 10px 0.5em 10px;
+  cursor: pointer;
+}
+
+.page__gitlab-btn:hover {
+  background-color: var(--button-hover);
+}

@@ -1,0 +1,17 @@
+{
+  "backend": {
+    "file": {
+      "path": "/vault/data"
+    }
+  },
+  "listener": {
+    "tcp":{
+      "address": "0.0.0.0:8200",
+      "tls_disable": "false",
+      "tls_cert_file": "/certs/server/cert.pem",
+      "tls_key_file": "/certs/server/key.pem", 
+      "max_request_size" : "-1"
+    }
+  },
+  "ui": false
+}

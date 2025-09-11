@@ -1,0 +1,33 @@
+.DS_Store
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+.idea/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# Server logs
+server.log
+
+# Unit test coverage files
+**/.coverage
+**/.htmlcov/
+**/coverage.xml
+
+# data files uploaded in src/api/data
+src/api/data/uploads/*
+src/api/data/tmp/*
+
+# Docker
+
+# Vault
+certs/**
+
+# Dev
+.env
+
+# Runtime data
+**/temporary_creds.json
+keycloak_userinfo_cache.sqlite

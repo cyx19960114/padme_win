@@ -1,0 +1,43 @@
+version: '3.5'
+
+services: 
+ 
+  traincreator:
+    image: ${TRAIN_CREATOR_IMAGE}
+    restart: unless-stopped
+    environment:
+      VIRTUAL_HOST: "creator.${SERVICE_DOMAIN}, www.creator.${SERVICE_DOMAIN}"
+      LETSENCRYPT_HOST: "creator.${SERVICE_DOMAIN}, www.creator.${SERVICE_DOMAIN}"
+      VIRTUAL_PORT: 5000
+      VIRTUAL_PATH: "/"
+      WAPP_APPLICATION_ROOT: "/"
+      API_APPLICATION_ROOT: "/traincreator/api"
+      VAULT_URL: "https://vault:8200"
+      VAULT_ROLE_ID: ${TRAIN_CREATOR_VAULT_ROLE_ID}
+      VAULT_SECRET_ID: ${TRAIN_CREATOR_VAULT_SECRET_ID}
+      GITLAB_URL: "${TRAIN_DEPOT_ADDRESS}"
+      KC_REALM: ${TRAIN_CREATOR_KC_REALM}
+      KC_URL: ${TRAIN_CREATOR_KC_URL}
+      KC_CLIENT_ID: ${TRAIN_CREATOR_KC_CLIENT_ID}
+      KC_USERINFO_URL: ${TRAIN_CREATOR_KC_USERINFO_URL}
+      GITLAB_GROUP_ID: ${TRAIN_CREATOR_GITLAB_GROUP_ID}
+      GITLAB_STORE_ID: ${TRAIN_CREATOR_GITLAB_STORE_ID}
+      GITLAB_STORE_URL: ${TRAIN_CREATOR_GITLAB_STORE_URL}
+      GITLAB_STORE_MAIN_BRANCH: ${TRAIN_CREATOR_STORE_MAIN_BRANCH}
+      GITLAB_FEDERATED_STORE_ID: ${TRAIN_CREATOR_GITLAB_FEDERATED_STORE_ID}
+      GITLAB_FEDERATED_STORE_URL: ${TRAIN_CREATOR_GITLAB_FEDERATED_STORE_URL}
+    volumes:
+      - vault-certs-client:/usr/src/app/certs:ro
+    networks:
+      proxynet:
+      vaultnet:
+
+volumes:
+  vault-certs-client:
+    external: true
+
+networks:
+  vaultnet:
+    external: true
+  proxynet:
+    external: true

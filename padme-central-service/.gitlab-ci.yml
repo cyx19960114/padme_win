@@ -1,0 +1,109 @@
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  CI_REGISTRY_IMAGE_CENTRAL_SERVICE: $CI_REGISTRY_IMAGE/central-service
+  CENTRAL_SERVICE_IMAGE: $CI_REGISTRY_IMAGE_CENTRAL_SERVICE:$CI_COMMIT_BRANCH
+  DIND_IMAGE: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/dind/dind:$CI_COMMIT_BRANCH
+  DEPLOYMENT_RUNNER_TAGS: ""
+
+.build_base_rule:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      when: never
+    - if: $SKIP_BUILD == 'true'
+      when: never
+    - when: on_success
+
+build_central_service:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: build
+  before_script:
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Building Central Service"
+    - docker build --pull -t $CI_REGISTRY_IMAGE_CENTRAL_SERVICE:$CI_COMMIT_BRANCH .
+    - docker push $CI_REGISTRY_IMAGE_CENTRAL_SERVICE:$CI_COMMIT_BRANCH
+    - echo "Central Service build complete"
+  rules:
+    - !reference [.build_base_rule, rules]
+
+test_central_service:
+  image: docker:latest
+  services:
+    - docker:dind
+  stage: test
+  needs: [build_central_service]
+  variables:
+    CI_REGISTRY_IMAGE_CENTRAL_SERVICE: $CI_REGISTRY_IMAGE/central-service
+  before_script:
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "There are currently no test, skipping..."
+    #- docker pull $CI_REGISTRY_IMAGE_CENTRAL_SERVICE:$CI_COMMIT_SHA
+    #- docker run --rm -i $CI_REGISTRY_IMAGE_CENTRAL_SERVICE:$CI_COMMIT_SHA npm test
+  rules:
+    - !reference [.build_base_rule, rules]
+
+merge_custom_config:
+  image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/deployment/image:main
+  stage: deploy
+  script:
+    # Merge the compose template file with any custom user config, the template file is updated to the merged compose file
+    - chmod +x ./scripts/create-merged-compose.sh && ./scripts/create-merged-compose.sh docker-compose.template.yml "$CUSTOM_COMPOSE_CONFIG"
+  artifacts:
+    paths:
+      - docker-compose.template.yml
+  only:
+    - main
+    - prerelease
+
+.deploy_central_service:
+  image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/deployment/image:main
+  stage: deploy
+  needs: [merge_custom_config]
+  environment:
+    url: https://requester.${SERVICE_DOMAIN}
+  before_script:
+    - ssh-add <(echo "$DEPLOYMENT_TARGET_SSH_KEY")
+  script:
+    # Substitute environment variables in the merged compose file
+    - substitute_envs.sh docker-compose.template.yml docker-compose.yml
+    # Clone the compose file to the host, then login to host and pull + docker compose up
+    - ssh $DEPLOYMENT_TARGET_HOST "mkdir -p $DEPLOYMENT_TARGET_DIR"
+    - scp docker-compose.yml $DEPLOYMENT_TARGET_HOST:$DEPLOYMENT_TARGET_DIR
+    - ssh $DEPLOYMENT_TARGET_HOST "echo '$CI_JOB_TOKEN' | docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY"
+    - ssh $DEPLOYMENT_TARGET_HOST "cd $DEPLOYMENT_TARGET_DIR && docker compose pull && docker compose up -d"
+  tags:
+    - $DEPLOYMENT_RUNNER_TAGS
+
+deploy_central_service_production:
+  extends: .deploy_central_service
+  environment:
+    name: production
+  only:
+    - main
+
+deploy_central_service_staging:
+  extends: .deploy_central_service
+  environment:
+    name: staging
+  only:
+    - prerelease
+
+include:
+  - template: Code-Quality.gitlab-ci.yml
+
+code_quality:
+  artifacts:
+    expose_as: "Code Quality Report"
+    paths: [gl-code-quality-report.json]
+    expire_in: 365 days
+  rules:
+    - if: "$CODE_QUALITY_DISABLED"
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'

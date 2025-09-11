@@ -1,0 +1,49 @@
+version: '3.5'
+services:
+
+  metadata_store:
+    image: ${METADATA_STORE_IMAGE}
+    restart: unless-stopped
+    environment:
+      VIRTUAL_HOST: "metadata.${SERVICE_DOMAIN}"
+      LETSENCRYPT_HOST: "metadata.${SERVICE_DOMAIN}"
+      VIRTUAL_PORT: 80
+      MSTORE_GRAPHSTORAGE: "SQL"
+      MSTORE_GRAPHSQL: "postgresql://postgres:${METADATA_STORE_GRAPHDB_PASSWORD}@graphdatabase/postgres"
+      MSTORE_DATABASE: "postgresql://postgres:${METADATA_STORE_MANAGEMENTDB_PASSWORD}@managementdatabase/postgres"
+      MSTORE_HOST: "https://metadata.${SERVICE_DOMAIN}"
+      MSTORE_REGISTRYKEYS: ${METADATA_STORE_REGISTRY_KEY}
+      MSTORE_TRAINCLASSKEYS: ${METADATA_STORE_TRAIN_CLASS_PROTECTION_KEYS}
+      MSTORE_PORT: "80"
+    networks:
+      - metadatanet
+      - proxynet
+
+  graphdatabase:
+    image: "postgres:14.5"
+    restart: "unless-stopped"
+    environment:
+      POSTGRES_PASSWORD: ${METADATA_STORE_GRAPHDB_PASSWORD}
+    networks:
+      - metadatanet
+    volumes:
+      - graphdata:/var/lib/postgresql/data
+  
+  managementdatabase:
+    image: "postgres:14.5"
+    restart: "unless-stopped"
+    environment:
+      POSTGRES_PASSWORD: ${METADATA_STORE_MANAGEMENTDB_PASSWORD}
+    networks:
+      - metadatanet
+    volumes:
+      - managementdata:/var/lib/postgresql/data
+
+networks:
+  proxynet:
+    external: true
+  metadatanet:
+
+volumes:
+  graphdata:
+  managementdata:

@@ -1,0 +1,27 @@
+<section id="appstore-user-feedback" class="appstore__page page__user-feedback">
+    <div class="card">
+        <div class="row">
+            <div class="col-2">
+                <img src="images/user-icon.png" width="70" class="rounded-circle mt-2">
+            </div>
+            <div class="col-10">
+                <div class="comment-box ml-2">
+                    <h4 id="logged_in_user"></h4>
+                    <div class="rating">
+                        <input type="radio" name="rating" value="5" id="5"><label for="5">☆</label>
+                        <input type="radio" name="rating" value="4" id="4"><label for="4">☆</label>
+                        <input type="radio" name="rating" value="3" id="3"><label for="3">☆</label>
+                        <input type="radio" name="rating" value="2" id="2"><label for="2">☆</label>
+                        <input type="radio" name="rating" value="1" id="1"><label for="1">☆</label>
+                    </div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    <div class="comment-area">
+                        <textarea id="user_comment" class="form-control" placeholder="Train Image Feedback" rows="6" cols="30" style="width: 400px; height: 125px;"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="save-feedback-loading" style="display: none;">
+        <img src="images/loading.gif" />
+    </div>
+</section>

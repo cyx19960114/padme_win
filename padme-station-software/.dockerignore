@@ -1,0 +1,23 @@
+# Configuration files
+.eslint*
+*.yml
+renovate.json
+Dockerfile.dev
+.husky/*
+
+# Environment files
+.env*
+
+# Node.js
+node_modules
+npm-debug.log
+
+# Project files
+wizard-frontend/*
+!wizard-frontend/build
+station-frontend/*
+!station-frontend/build
+StationDeploymentFiles/*
+
+# Misc
+Deployment_Guidance_of_Station_Software.docx

@@ -1,0 +1,19 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  CI_REGISTRY_IMAGE: $CI_REGISTRY_IMAGE/image
+
+build_deployment_image:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: build
+  before_script:
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Building Deployment image"
+    - docker build --pull --build-arg KNOWN_HOST_KEYS="$KNOWN_HOST_KEYS" -t $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
+    - echo "Deployment image build successfully"

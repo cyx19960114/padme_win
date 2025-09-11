@@ -1,0 +1,73 @@
+stages:
+  - build
+  - deploy
+  - manual
+
+variables:
+  CI_REGISTRY_IMAGE_VAULT: $CI_REGISTRY_IMAGE/vault
+  VAULT_IMAGE: $CI_REGISTRY_IMAGE_VAULT:$CI_COMMIT_BRANCH
+
+build_vault:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: build
+  before_script:
+    - echo "$CI_BUILD_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Building Vault"
+    - docker build --pull -t $CI_REGISTRY_IMAGE_VAULT:$CI_COMMIT_BRANCH Vault
+    - docker push $CI_REGISTRY_IMAGE_VAULT:$CI_COMMIT_BRANCH
+    - echo "Vault build complete"
+
+.deploy-vault:
+  image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/deployment/image:main
+  stage: deploy
+  before_script:
+    - ssh-add <(echo "$DEPLOYMENT_TARGET_SSH_KEY")
+  script:
+    # Build compose file
+    - substitute_envs.sh docker-compose.template.yml docker-compose.yml
+    # Clone the compose file to the host, then login to host and pull + docker compose up
+    - ssh $DEPLOYMENT_TARGET_HOST "mkdir -p $DEPLOYMENT_TARGET_DIR"
+    - scp docker-compose.yml $DEPLOYMENT_TARGET_HOST:$DEPLOYMENT_TARGET_DIR
+    - ssh $DEPLOYMENT_TARGET_HOST "echo '$CI_BUILD_TOKEN' | docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY"
+    - ssh $DEPLOYMENT_TARGET_HOST "cd $DEPLOYMENT_TARGET_DIR && docker compose pull && docker compose up -d"
+
+deploy_vault_production:
+  extends: .deploy-vault
+  environment:
+    name: production
+  only:
+    - main
+
+deploy_vault_staging:
+  extends: .deploy-vault
+  environment:
+    name: staging
+  only:
+    - prerelease
+
+.unseal_vault:
+  image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/deployment/image:main
+  stage: manual
+  before_script:
+    - ssh-add <(echo "$DEPLOYMENT_TARGET_SSH_KEY")
+  script:
+    - chmod +x ./scripts/unseal-vault.sh
+    - ./scripts/unseal-vault.sh $DEPLOYMENT_TARGET_HOST $DEPLOYMENT_TARGET_DIR "$VAULT_UNSEAL_POTIONS"
+  when: manual
+
+unseal_vault_production:
+  extends: .unseal_vault
+  environment:
+    name: production
+  only:
+    - main
+
+unseal_vault_staging:
+  extends: .unseal_vault
+  environment:
+    name: staging
+  only:
+    - prerelease

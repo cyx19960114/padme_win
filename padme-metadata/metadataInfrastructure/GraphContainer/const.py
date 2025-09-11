@@ -1,0 +1,1 @@
+HASH_METHOD = "sha512_256"

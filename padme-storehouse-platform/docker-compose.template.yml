@@ -1,0 +1,43 @@
+version: '3.5'
+
+services:
+
+  storehouse:
+    image: ${STORE_HOUSE_IMAGE}
+    restart: unless-stopped
+    environment:
+      VIRTUAL_HOST: "storehouse.${SERVICE_DOMAIN}, www.storehouse.${SERVICE_DOMAIN}"
+      LETSENCRYPT_HOST: "storehouse.${SERVICE_DOMAIN}, www.storehouse.${SERVICE_DOMAIN}"
+      VIRTUAL_PORT: 5001
+      VIRTUAL_PATH: "/"
+      WAPP_APPLICATION_ROOT: "/"
+      API_APPLICATION_ROOT: "/storehouse/api"
+      VAULT_URL: "https://vault:8200"
+      VAULT_ROLE_ID: ${STORE_HOUSE_VAULT_ROLE_ID}
+      VAULT_SECRET_ID: ${STORE_HOUSE_VAULT_SECRET_ID}
+      GITLAB_URL: "${TRAIN_DEPOT_ADDRESS}"
+      KC_REALM: "${STORE_HOUSE_KC_REALM}"
+      KC_CLIENT_ID: "${STORE_HOUSE_KC_CLIENT_ID}"
+      KC_URL: "${STORE_HOUSE_KC_URL}"
+      KC_USERINFO_URL: "${STORE_HOUSE_KC_USERINFO_URL}"
+      GITLAB_GROUP_ID: "${STORE_HOUSE_GITLAB_GROUP_ID}"
+      GITLAB_STORE_ID: "${STORE_HOUSE_GITLAB_STORE_ID}"
+      GITLAB_STORE_SUBFOLDER_URL: "${STORE_HOUSE_GITLAB_STORE_SUBFOLDER_URL}"
+      GITLAB_STORE_MAIN_BRANCH: "${STORE_HOUSE_GITLAB_STORE_MAIN_BRANCH}"
+      GITLAB_FEDERATED_STORE_ID: "${STORE_HOUSE_GITLAB_FEDERATED_STORE_ID}"
+      GITLAB_FEDERATED_STORE_SUBFOLDER_URL: "${STORE_HOUSE_GITLAB_FEDERATED_STORE_SUBFOLDER_URL}"
+    volumes:
+      - vault-certs-client:/usr/src/app/certs:ro
+    networks:
+      proxynet:
+      vaultnet:
+
+volumes:
+  vault-certs-client:
+    external: true
+
+networks:
+  vaultnet:
+    external: true
+  proxynet:
+    external: true

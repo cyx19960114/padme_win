@@ -1,0 +1,65 @@
+<section id="wizard-private-flow" class="wizard__page page__private-flow">
+  <div class="notes">
+    <h3>Instructions:</h3>
+    <ul>
+      <li class="private_flow_instructions">
+        GitLab is the only web-based Git repository supported at the moment.
+      </li>
+      <li class="private_flow_instructions">
+        Please create a GitLab repository to store the train image.
+      </li>
+      <li>
+        Create and provide an access token with <b>api</b> scope in
+        <i>Preferences > Access Tokens</i> path.
+      </li>
+      <li class="official_flow_instructions">
+        Follow this URL:
+        <a
+          href="https://depot.padme-analytics.de/-/profile/personal_access_tokens"
+          target="_blank"
+          rel="noopener noreferrer"
+          >https://depot.padme-analytics.de/-/profile/personal_access_tokens
+        </a>
+      </li>
+      <li class="private_flow_instructions">
+        Provide a base GitLab URL (for example,
+        https://depot.padme-analytics.de) along with the project ID.
+      </li>
+    </ul>
+  </div>
+  <br /><br />
+  <div>
+    <table id="private_flow_git_info">
+      <tbody>
+        <tr>
+          <td>
+            <label for="git_url" class="label_git_url"
+              >GitLab Base URL<span style="color: red">*</span></label
+            >
+          </td>
+          <td>
+            <input type="text" id="git_url" name="git_url" class="git_url" />
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <label for="pid" class="label_pid"
+              >Project ID<span style="color: red">*</span></label
+            >
+          </td>
+          <td><input type="text" id="pid" name="pid" class="pid" /></td>
+        </tr>
+        <tr>
+          <td>
+            <label for="a_token" class="label_a_token"
+              >Access Token<span style="color: red">*</span></label
+            >
+          </td>
+          <td>
+            <input type="text" id="a_token" name="a_token" class="a_token" />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

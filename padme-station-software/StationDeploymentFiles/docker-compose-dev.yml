@@ -1,0 +1,220 @@
+
+# There exist multiple variables that can be used to configure this template.
+# You can identify those by their structure, such as ${VARIABLENAME}.
+# E.g. if you want to have multiple stations on one machine, set the value of the PROJECTNAME and STATION_PORT variables.
+# To set values for those variables, create an .env file in this folder with the following structure:
+#
+# VARNAME=VARVALUE
+version: '3.5'
+services:
+  metadata:
+    container_name: '${PROJECTNAME}pht-metadata'
+    image: "repository.padme-analytics.de/stationsoftware/phtmetadataprovider:latest"
+    networks:
+      metadata:
+        aliases:
+          - metadataprovider
+    environment:
+      - MTP_UPLINK=https://metadata.padme-analytics.de/events/
+      - MTP_CONFIGURATION_FOLDER=/config
+
+  mongo:
+    build: ./mongo
+    container_name: '${PROJECTNAME}pht-mongo'
+    volumes:
+      - "pht-mongo-data:/data/db"
+    environment:
+      - MONGO_PHT_ADMIN_PASSWORD=admin
+    ports: 
+      - "27017-27018:27017"
+    networks:
+      pht-net:
+        aliases:
+          - pht-mongo
+      metadata:
+        aliases:
+          - pht-mongo
+    restart: unless-stopped
+
+  dind:
+    image: "repository.padme-analytics.de/stationsoftware/dind:main"
+    container_name: '${PROJECTNAME}pht-dind'
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+      - DOCKER_TLS_SAN=DNS:pht-dind
+    volumes:
+      - "pht-dind-certs-ca:/certs/ca"
+      - "pht-dind-certs-client:/certs/client"
+      - "pht-dind-data:/var/lib/docker"
+      - "${HOST_MOUNT_DIR-/dev/null}:${DIND_MOUNT_DIR-/dev/null}"
+    networks:
+      pht-net:
+        aliases:
+          - pht-dind
+    privileged: true
+    restart: unless-stopped
+
+  pht-web:
+    build:
+      context: ../
+      dockerfile: Dockerfile.dev
+    container_name: '${PROJECTNAME}pht-web'
+    command: ${COMMAND-/bin/sh -c "while sleep 1000; do :; done"}
+    ports:
+      - "${STATION_PORT:-3030}:3030"
+    env_file: 
+      - .env
+    volumes:
+      - "pht-dind-certs-client:/usr/src/app/dind-certs-client/certs:ro"
+      - "pht-vault-certs-client:/usr/src/app/vault-certs-client/certs:ro"
+      - "pht-web-lockfile-vol:/lockfiledir"
+      - "..:/usr/src/app:cached"
+    environment:
+      - MONGO_HOST=pht-mongo
+      - MONGO_PORT=27017
+      - MONGO_USER=admin
+      - MONGO_PASSWORD=admin
+      - MONGO_DB=pht
+      - DOCKER_HOST=pht-dind
+      - DOCKER_PORT=2376
+      - HARBOR_ADDRESS=menzel.informatik.rwth-aachen.de
+      - HARBOR_PORT=3007
+      - CENTRALSERVICE_ADDRESS=requester.klee.informatik.rwth-aachen.de
+      - CENTRALSERVICE_PORT=443
+      # If you want to overwrite the endpoint (e.g. with your own CS instance)
+      # Add a .env file next to the compose with the content CENTRALSERVICE_ENDPOINT=xxxx
+      - CENTRALSERVICE_ENDPOINT=${CENTRALSERVICE_ENDPOINT-}
+      - AUTH_SERVER_ADDRESS=menzel.informatik.rwth-aachen.de
+      - AUTH_SERVER_PORT=3006
+      - JWT_SECRET=rwthi5-pht-jwt
+      - SESSION_SECRET=rwthi5-pht-session
+      - VAULT_HOST=pht-vault
+      - VAULT_PORT=8200
+      - METADATA_PROVIDER=http://metadataprovider:9988
+      - HOST_MOUNT_DIRECTORY=${DIND_MOUNT_DIR}
+      - REACT_APP_KC_AUTH_SERVER_URL=${KEYCLOAK_AUTH_SERVER_URL-https://localhost:8443}
+      - KC_AUTH_SERVER_URL=${KEYCLOAK_AUTH_SERVER_URL-https://localhost:8443}
+      - KC_PUBLIC_KEY_URL=${KEYCLOAK_PUBLIC_KEY_URL-http://pht-keycloak:8080/realms/PHT-Station}
+      - COSIGN_ENABLED=${COSIGN_ENABLED-false}
+    networks:
+      - pht-net
+      - metadata
+    depends_on: 
+      - mongo
+      - dind
+      - vault
+      - pht-keycloak
+    restart: unless-stopped
+ 
+  vault:
+    build: 
+      context: ./pht-vault
+      cache_from:
+        - vault:latest
+    image: vault:pht
+    container_name: '${PROJECTNAME}pht-vault'
+    ports:
+      - "8200-8201:8200"
+    environment:
+      - VAULT_ADDR=https://127.0.0.1:8200
+      - VAULT_API_ADDR=https://127.0.0.1:8200
+      - TLS_SAN=DNS:pht-vault
+    volumes:
+      - pht-vault-logs:/vault/logs
+      - pht-vault-data:/vault/data
+      - "pht-vault-certs-ca:/certs/ca"
+      - "pht-vault-certs-client:/certs/client"
+    networks:
+      pht-net:
+        aliases:
+          - pht-vault
+    cap_add:
+      - IPC_LOCK
+    entrypoint: generate_cert.sh vault server -config=/vault/config/vault.json
+    restart: unless-stopped
+
+  telegraf:
+    build: ./telegraf
+    container_name: '${PROJECTNAME}pht-telegraf'
+    networks:
+      - metadata
+      - pht-net
+    volumes:
+      - "pht-dind-certs-client:/certs:ro"
+    depends_on:
+      - dind
+
+  postgres-keycloak:
+    image: postgres:13.10
+    container_name: '${PROJECTNAME}pht-postgres-keycloak'
+    environment:
+      - POSTGRES_PASSWORD=keycloak_pwd
+      - POSTGRES_USER=keycloak
+      - POSTGRES_DB=keycloak
+    volumes:
+      - "pht-postgres-keycloak-data:/var/lib/postgresql/data"
+    networks:
+      pht-net:
+        aliases:
+          - postgres-keycloak
+    restart: unless-stopped
+
+  pht-keycloak:
+    build: ./keycloak 
+    container_name: '${PROJECTNAME}pht-keycloak'
+    command: "start --import-realm"
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN_USER-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD-password}
+      - KC_DB_VENDOR=POSTGRES
+      - KC_DB_ADDR=postgres-keycloak
+      - KC_DB_DATABASE=keycloak
+      - KC_DB_USER=keycloak
+      - KC_DB_PASSWORD=keycloak_pwd
+      - KC_HOSTNAME_URL=${KEYCLOAK_HOSTNAME_URL-https://localhost:8443}
+      - KC_HOSTNAME_ADMIN_URL=${KEYCLOAK_ADMIN_URL-https://localhost:8443}
+      - KC_HTTP_ENABLED=${KEYCLOAK_HTTP_ENABLED-true}
+      - KC_HOSTNAME_STRICT=${KEYCLOAK_HOSTNAME_STRICT-false}
+      - KC_HOSTNAME_STRICT_HTTPS=${KEYCLOAK_HOSTNAME_STRICT_HTTPS-false}
+      - KC_REDIRECT_URI=${KEYCLOAK_REDIRECT_URI-http://localhost:3030/*}
+    ports:
+      - "8443:8443"
+    depends_on:
+      - postgres-keycloak
+    networks:
+      pht-net:
+        aliases:
+          - pht-keycloak
+    restart: unless-stopped
+
+networks:
+  pht-net:
+    external: false
+    name: ${PROJECTNAME}pht-net
+  metadata:
+    external: false
+    name: ${PROJECTNAME}metadata-net
+
+volumes:
+  pht-dind-certs-ca:
+    name: '${PROJECTNAME}pht-dind-certs-ca'
+  pht-dind-certs-client:
+    name: '${PROJECTNAME}pht-dind-certs-client'
+  pht-dind-data:
+    name: '${PROJECTNAME}pht-dind-data'
+  pht-mongo-data:
+    name: '${PROJECTNAME}pht-mongo-data'
+  pht-vault-logs:
+    name: '${PROJECTNAME}pht-vault-logs'
+  pht-vault-data:
+    name: '${PROJECTNAME}pht-vault-data'
+  pht-vault-certs-ca:
+    name: '${PROJECTNAME}pht-vault-certs-ca'
+  pht-vault-certs-client:
+    name: '${PROJECTNAME}pht-vault-certs-client'
+  pht-web-lockfile-vol:
+    name: '${PROJECTNAME}pht-web-lockfile-vol'
+  pht-postgres-keycloak-data:
+    name: '${PROJECTNAME}pht-postgres-keycloak-data'
+
+

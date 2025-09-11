@@ -1,0 +1,48 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.217.4/containers/docker-existing-dockerfile
+{
+  "name": "Central Service",
+
+	// Add the IDs of extensions you want installed when the container is created.
+	"customizations": {
+		"extensions": [
+      "dbaeumer.vscode-eslint",
+      "ms-vscode.vscode-js-profile-flame",
+      "orta.vscode-jest",
+      "streetsidesoftware.code-spell-checker",
+      "grimmer.vscode-back-forward-button",
+      "cweijan.vscode-database-client2",
+      "donjayamanne.githistory",
+      "gruntfuggly.todo-tree",
+      "waderyan.gitblame",
+      "gitlab.gitlab-workflow"
+		],
+    // Set *default* container specific settings.json values on container create.
+    "settings": {}
+	},
+
+  //Use the existing docker-compose file
+  "dockerComposeFile": ["../docker-compose.dev.yml"],
+  "service": "centralservice",
+  "workspaceFolder": "/usr/src/app",
+
+  //Add current username as project name to to the .env file
+  //Otherwise, instances with the same parent directory would overwrite each other
+  "initializeCommand": "test -f .env || echo \"#After changing any value in this file you need to rebuild the devcontainer\\nCOMPOSE_PROJECT_NAME=$USER \\n#\\n#These values can be taken out of the CI/CD variables in the CS gitlab repo (for staging)\\n#\\n#Vault\\nCENTRAL_SERVICE_VAULT_ROLE_ID=\\nCENTRAL_SERVICE_VAULT_SECRET_ID=\\n#Keycloak\\nCENTRAL_SERVICE_AUTH_SERVER_ADMIN_USERNAME=\\nCENTRAL_SERVICE_AUTH_SERVER_ADMIN_PASSWORD=\\n#Slack\\nCENTRAL_SERVICE_SLACK_SIGNING_SECRET=\\nCENTRAL_SERVICE_SLACK_BOT_TOKEN=\\nCENTRAL_SERVICE_SLACK_CHANNEL_ID=\\n#Station registry\\nCENTRAL_SERVICE_STATION_REGISTRY_JWT_SECRET=\\n#Metadata Store\\nMETADATA_STORE_REGISTRY_KEY=\\n#Harbor\\nCENTRAL_SERVICE_HARBOR_ADMIN_USER=\\nCENTRAL_SERVICE_HARBOR_ADMIN_PASSWORD=\\nCENTRAL_SERVICE_HARBOR_WEBHOOK_SECRET=\\nCENTRAL_SERVICE_HARBOR_CLI_SECRET=\" > .env",
+
+  //Command that is executed after container has been created
+  //-> Install missing packages and configure git
+  "postCreateCommand": "apt update && apt install -y nano vim && git config --global --add safe.directory /usr/src/app && git config --global core.editor vim"
+
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
+
+  // Uncomment when using a ptrace-based debugger like C++, Go, and Rust
+  // "runArgs": [ "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],
+
+  // Uncomment to use the Docker CLI from inside the container. See https://aka.ms/vscode-remote/samples/docker-from-docker.
+  // "mounts": [ "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind" ],
+
+  // Uncomment to connect as a non-root user if you've added one. See https://aka.ms/vscode-remote/containers/non-root.
+  // "remoteUser": "vscode"
+}

@@ -1,0 +1,11 @@
+**/node_modules
+**/.git
+**/.gitignore
+**/.vscode
+CentralDeploymentFiles
+TrainRequester/build
+Dockerfile
+rundev.sh
+.devcontainer
+.env
+.gitlab-ci.yml

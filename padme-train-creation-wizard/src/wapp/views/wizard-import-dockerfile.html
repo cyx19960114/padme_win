@@ -1,0 +1,18 @@
+<section id="wizard-import-dockerfile" class="wizard__page page__import-dockerfile">
+  <div>
+    <img src="images/import-symbol.png" />
+  </div>
+  <div>Upload a Dockerfile</div>
+  <input type="file" id="import-dockerfile-file" name="file" style="display:none;">
+  <label for="import-dockerfile-file" class="page__import-dockerfile-btn">Select file</label>
+  <div id="import-dockerfile-filename" class="page__import-dockerfile-filename"></div>
+  <div id="import-dockerfile-error"></div><br><br>
+  <div><h3 style="text-align: center;">-- OR --</h3></div>
+  <div>
+    <input type="checkbox" id="std_template_docker" name="std_template_docker" value="Standard">
+    <label for="std_template_docker">Create a standard <b>Dockerfile</b> from a defined template with necessary information</label><br>
+  </div>
+  <div id="import-dockerfile-loading" style="display: none;">
+    <img src="images/loading.gif" />
+  </div>
+</section>

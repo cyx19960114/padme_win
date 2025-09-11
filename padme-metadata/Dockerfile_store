@@ -1,0 +1,10 @@
+FROM python:3.8
+LABEL description="Contains the store software for the PHT metadata infrastructure"
+COPY . metadata
+WORKDIR metadata
+COPY .git .git
+RUN git submodule update
+RUN pip3 install .
+RUN pip3 install psycopg2
+RUN chmod +x bin/metadatastore
+CMD bin/metadatastore

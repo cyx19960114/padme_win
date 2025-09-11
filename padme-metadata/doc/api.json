@@ -1,0 +1,300 @@
+{
+  "openapi":"3.0.2",
+  "info": {
+    "title":"Metadata Provider API",
+    "version":"1.0"
+  },
+  "servers": [
+    {"url":"https://provider.example.org/"}
+  ],
+  "components": {
+    "schemas": {
+      "filterList": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "useAllowList": {
+            "type": "boolean"
+          }
+        }
+      },
+      "train_pid": {
+        "type": "object",
+        "properties": {
+          "pid": {
+            "type": "string",
+            "example": "https://trains.example.org/train_1"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2007-08-31T16:47+00:00"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+      "/configuration/general": {
+          "summary": "General Configuration of the metadata provider.",
+          "get": {
+              "summary": "Get the configuration and whether the provider is ready.",
+              "responses": {
+                  "200": {
+                      "description": "Returns configuration",
+                      "content": {
+                        "application/json": {
+                          "schema": {
+                            "type": "object",
+                            "properties": {
+                              "stationIdentifier": {
+                                "type": "string",
+                                "example": "https://stations.example.org/test_station"
+                              },
+                              "ready": {
+                                "type": "boolean"
+                              }
+                            }
+                            
+                          }
+                        }
+                      }
+                  }
+              }
+          },
+          "post": {
+            "summary": "Setup the provider.",
+            "requestBody": {
+              "description": "Set up information",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "stationIdentifier": {
+                        "type": "string",
+                          "example": "https://stations.example.org/test_station"
+                        }
+                    }
+                  }
+                }
+              }
+              
+            },
+            "responses": {
+              "200": {
+                "description": "Set up successful"
+              }
+            }
+          }
+      },
+      "/configuration/secret": {
+        "summary": "Set up of secret key.",
+        "post": {
+          "summary": "Setup the secret key.",
+          "requestBody": {
+            "required": true,
+            "description": "secret key",
+            "content": {
+              "application/octet-stream": {
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Setup of secret key successful."
+            }
+          }
+        }
+      },
+      "/configuration/filterList": {
+        "summary": "The filter list used to filter events.",
+        "get": {
+          "summary": "Get the current filter list",
+          "responses": {
+            "200": {
+              "description": "The current settings",
+              "content": {
+                "application/json": {
+                  "schema": {"$ref": "#/components/schemas/filterList"}
+                }
+              }
+            }
+          }
+        },
+        "post": {
+          "requestBody": {
+            "description": "The new settings",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/filterList"}
+              }
+            }
+          },
+          "responses": {
+            "200": {"description": "Valid settings."}
+          }
+        }
+      },
+      "/remote/execution/metric": {
+        "summary": "Metrics about a train",
+        "post": {
+          "requestBody": {
+            "description": "Metrics about a train. Can be of type log/cpu/memory. The semantic of the value property is defined by this type. In the case of cpu, it is the usage in percent. In the case of memory, it is the memory usage in bytes (as an integer). For log, value is a string containing the log message. The pid is the IRI of the train.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pid": {
+                      "type": "string",
+                      "example": "https://trains.example.org/train_1"
+                    },
+                    "metrics": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "example": "2007-08-31T16:47+00:00"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": ["memory", "cpu", "log"],
+                            "example": "cpu"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Metric valid."
+            }
+          }
+        }
+      },
+      "/remote/execution/state/startedRunning": {
+        "summary": "Notifies the provider that a train started running.",
+        "post": {
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/train_pid"}
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Notification successful."
+            }
+          }
+        }
+      },
+      "/remote/execution/state/startedDownloading": {
+        "summary": "Notifies the provider that a train started downloading.",
+        "post": {
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/train_pid"}
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Notification successful."
+            }
+          }
+        }
+      },
+      "/remote/execution/state/finishedDownloading": {
+        "summary": "Notifies the provider that a train finished downloading.",
+        "post": {
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/train_pid"}
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Notification successful."
+            }
+          }
+        }
+      },
+      "/remote/execution/state/finished": {
+        "summary": "Notifies the provider that a train finished running.",
+        "post": {
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {"allOf": 
+                [
+                {"$ref": "#/components/schemas/train_pid"}, 
+                {
+                  "type": "object",
+                  "properties": {
+                    "successful": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+                ] 
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Notification successful."
+            }
+          }
+        }
+      },
+      "/remote/execution/state/rejected": {
+        "summary": "Notifies the provider that a train was rejected.",
+        "post": {
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {"allOf": 
+                [
+                {"$ref": "#/components/schemas/train_pid"}, 
+                {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Unknown train"
+                    }
+                  }
+                }
+                ] 
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Notification successful."
+            }
+          }
+        }
+      }
+  }
+}

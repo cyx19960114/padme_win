@@ -1,0 +1,137 @@
+# docker-compose -p $USER -f docker-compose-dev.yml up -d
+# docker-compose -p $USER -f docker-compose-dev.yml down
+version: '3.5'
+services: 
+
+  centralservice:
+    build: 
+        context: .
+    entrypoint: ["/bin/sh", "-c", "while sleep 1000; do :; done"]
+    restart: unless-stopped
+    container_name: centralservice-$USER
+    networks: 
+      centraldeploymentfiles_centernetwork:
+      proxynet:
+      vaultnet:
+    volumes:
+      - "centraldeploymentfiles_dind-certs-client:/usr/src/app/dind-certs-client/certs:ro"
+      - vault-certs-client:/usr/src/app/vault-certs-client/certs:ro
+      - "./:/usr/src/app"
+    #TODO: Think about solution to make this general
+    dns_search:
+      - informatik.rwth-aachen.de
+      - dbis.rwth-aachen.de
+      - rwth-aachen.de
+    dns:
+      - 134.130.5.1
+      - 134.130.4.1
+    environment: 
+      NODE_ENV: development
+      # These env variables overwrite the config for the dev instances
+      DB_USERNAME: postgres
+      DB_PASSWORD: phtadmin
+      DB_HOST: "${USER}_database"
+      VIRTUAL_HOST: "klee.informatik.rwth-aachen.de"
+      VIRTUAL_PORT: 3000
+      VIRTUAL_PATH: "/centralservice-$USER"
+      HOST_ADDRESS: klee.informatik.rwth-aachen.de
+      HOST_PORT: 443
+      HOST_BASE: "centralservice-$USER"
+      HARBOR_ADDRESS: repository.padme-analytics.de
+      HARBOR_PORT: 443
+      HARBOR_ADMIN_USER: ${CENTRAL_SERVICE_HARBOR_ADMIN_USER}
+      HARBOR_ADMIN_PASSWORD: ${CENTRAL_SERVICE_HARBOR_ADMIN_PASSWORD}
+      HARBOR_ADMIN_CLI_SECRET: ${CENTRAL_SERVICE_HARBOR_CLI_SECRET}
+      HARBOR_WEBHOOK_SECRET: ${CENTRAL_SERVICE_HARBOR_WEBHOOK_SECRET}
+      AUTH_SERVER_ADDRESS: auth.padme-analytics.de
+      REACT_APP_AUTH_SERVER_ADDRESS: auth.padme-analytics.de
+      AUTH_SERVER_PORT: 443
+      AUTH_SERVER_ADMIN_CLI_USERNAME: ${CENTRAL_SERVICE_AUTH_SERVER_ADMIN_USERNAME}
+      AUTH_SERVER_ADMIN_CLI_PASSWORD: ${CENTRAL_SERVICE_AUTH_SERVER_ADMIN_PASSWORD}
+      STATION_REGISTRY_ADDRESS: station-registry.de
+      STATION_REGISTRY_PORT: 443
+      STATION_REGISTRY_JWT_SECRET: ${CENTRAL_SERVICE_STATION_REGISTRY_JWT_SECRET}
+      VAULT_HOST: vault
+      VAULT_PORT: 8200
+      VAULT_ROLE_ID: ${CENTRAL_SERVICE_VAULT_ROLE_ID}
+      VAULT_SECRET_ID: ${CENTRAL_SERVICE_VAULT_SECRET_ID}
+      SLACK_BOT_TOKEN: ${CENTRAL_SERVICE_SLACK_BOT_TOKEN-}
+      SLACK_SIGNING_SECRET: ${CENTRAL_SERVICE_SLACK_SIGNING_SECRET-}
+      SLACK_PADME_CHANNEL_ID: ${CENTRAL_SERVICE_SLACK_CHANNEL_ID-}
+      SLACK_INTEGRATION_ENABLED: ${CENTRAL_SERVICE_SLACK_INTEGRATION_ENABLED-false}
+      MINIO_PORT: 9000
+      MINIO_ENDPOINT: "minio-$USER"
+      MINIO_USE_SSL: "false"
+      MINIO_ADMIN_USER: phtadmin
+      MINIO_ADMIN_PASSWORD: phtadmin
+      STATION_LIST_CACHE_TTL: 300 # in seconds
+      #CS API Endpoint: {Protocol}://{HOST_ADDRESS}:{HOST_PORT}/{HOST_BASE}
+      REACT_APP_CS_API_ENDPOINT: "https://klee.informatik.rwth-aachen.de/centralservice-$USER"
+      MAIL_HOST: smarthost.rwth-aachen.de
+      MAIL_PORT: 25
+      # MAIL_USERNAME: <MAIL_USERNAME_SET_AS_NEEDED>
+      # MAIL_PASSWORD: <MAIL_PASSWORD_SET_AS_NEEDED>
+      #TLS enabled
+      # MAIL_USESMTPS: <true,false>
+      # TLS verified
+      # MAIL_VERIFYSMTPS: <true,false>
+      MAIL_FROMADDRESS: padme-noreply@rwth-aachen.de
+      MAIL_REPLYTOADDRESS: pht@dbis.rwth-aachen.de
+      STORE_ENROLLMENT_SECRET: ${METADATA_STORE_REGISTRY_KEY}
+      METADATA_STORE_URL: https://metadata.padme-analytics.de/stations/enroll
+      MONITORING_API_ADDRESS: https://monitoringapi.klee.informatik.rwth-aachen.de
+
+  minio_test:
+    image: 'minio/minio'
+    container_name: minio-$USER
+    restart: always
+    expose: 
+      - "9000"
+      - "9001"
+    environment: 
+      MINIO_ROOT_USER: phtadmin
+      MINIO_ROOT_PASSWORD: phtadmin
+      MINIO_BROWSER: "on"
+      VIRTUAL_HOST: "klee.informatik.rwth-aachen.de"
+      VIRTUAL_PATH: "/minio-$USER"
+    volumes:
+      - type: volume
+        source: minio
+        target: /data
+    networks: 
+      proxynet:
+      centraldeploymentfiles_centernetwork:
+    command: server /data --console-address ":9001"
+
+  postgres_center:
+    image: postgres:13
+    restart: unless-stopped
+    container_name: postgres-$USER
+    networks: 
+      centraldeploymentfiles_centernetwork:
+        aliases:
+          - "${USER}_database"
+    environment: 
+      POSTGRES_PASSWORD: phtadmin
+    volumes:
+      - type: volume
+        source: postgres
+        target: /var/lib/postgresql/data
+
+networks: 
+  proxynet:
+    external: true
+  centraldeploymentfiles_centernetwork:
+    external: true
+  vaultnet:
+    external: true
+
+volumes: 
+  postgres:
+    name: "postgres_${USER}_data"
+  minio: 
+    name: "minio_${USER}_data"
+  centraldeploymentfiles_dind-certs-client:
+    external: true
+  vault-certs-client:
+    external: true

@@ -1,0 +1,69 @@
+BASE <https://metadata.padme-analytics.de/entities/stations/example> 
+PREFIX station: <station-registry.example.org/>
+PREFIX pht: <schema.padme-analytics.de#>
+PREFIX dcat: <http://www.w3.org/ns/dcat/#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+<#e> a pht:Station ;
+    pht:ownedBy <http://someperson.example.com#i> ;
+    rdfs:label "Example Station"@en ;
+    rdfs:comment "An examplary Station owned by an imaginative Entity."@en ;
+    pht:stationHasExecutionEnvironment <#exenv> ;
+    pht:hasDataset <#dataset1> .
+
+<#exenv> a pht:ExecutionEnvironment ;
+    rdfs:label "Sample Execution Environment" ;
+    pht:environmentSupportsRepresentation pht:SelfContainedDockerImage ;
+    pht:environmentSupportsDependency [
+        a pht:StorageDependency ;
+        pht:storageMaxValue "10"
+    ] ;
+    pht:environmentSupportsDependency [
+        a pht:MemoryDependency ;
+        pht:memoryMaxValue "5000"
+    ] .
+
+<#dataset1> a pht:Dataset ;
+    dcat:title "Examplary Dataset"^^xsd:string ; 
+    dcat:description "An examplary Dataset containing basic information about patients" ;
+    pht:accessThroughInterface <#interface1> .
+
+<#interface1> a pht:PostgresInterface ;
+    rdfs:comment "Interface to the examplary Dataset" ;
+    pht:dataInterfaceVersion "14.0.0.0"^^xsd:string ;
+    pht:hasInterfaceShape <#interfaceShape1> .
+
+<#interfaceShape1> a pht:RelationalSQLDataInterfaceShape ;
+pht:dataInterfaceShapeHasKey "patientdb"^^xsd:string ;
+pht:consistsOfTabularShapes <#tabular1> ;
+rdfs:comment "This relational DataInterfaceShape describes a database which holds informaiton about patients." .
+
+<#tabular1> a pht:TabularSQLDataInterfaceShape ;
+pht:dataInterfaceShapeHasKey "patient"^^xsd:string ;
+pht:consistsOfColumnShapes <#namecolumn>, <#birthcolumn>, <#sexcolumn> ;
+rdfs:comment "This describes the only table in the database which holds information about patients." .
+
+<#namecolumn> a pht:ColumnSQLDataInterfaceShape;
+pht:dataInterfaceShapeHasKey "name"^^xsd:string;
+pht:shapeHasDatatype [
+    a pht:DataInterfaceShapeAtomicDatatype; 
+    pht:hasDatatype xsd:string 
+] .
+
+<#birthcolumn> a pht:ColumnSQLDataInterfaceShape;
+pht:dataInterfaceShapeHasKey "birthday"^^xsd:string ;
+pht:shapeHasDatatype [
+    a pht:DataInterfaceShapeAtomicDatatype; 
+    pht:hasDatatype xsd:dateTimeStamp ;
+] .
+
+<#sexcolumn> a pht:ColumnSQLDataInterfaceShape;
+pht:dataInterfaceShapeHasKey "sex"^^xsd:string ;
+rdfs:comment "A column in the table which has three possible values" ;
+pht:shapeHasDatatype [
+    a pht:DataInterfaceShapeEnumDatatype; 
+    pht:dataInterfaceShapeEnumDataTypeAllowedValue "m";
+    pht:dataInterfaceShapeEnumDataTypeAllowedValue "f";
+    pht:dataInterfaceShapeEnumDataTypeAllowedValue "x";
+] .

@@ -1,0 +1,39 @@
+{
+  "name": "playground-backend",
+  "version": "1.0.0",
+  "description": "Playground backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest"
+  },
+  "author": "Sven Weber",
+  "license": "MIT",
+  "dependencies": {
+    "@faker-js/faker": "^8.0.2",
+    "async-mutex": "^0.4.0",
+    "axios": "^1.4.0",
+    "cli-color": "^2.0.3",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.9",
+    "dockerode": "^3.3.5",
+    "enum": "^3.0.4",
+    "express": "^4.18.2",
+    "graph-data-structure": "^3.3.0",
+    "joi": "^17.9.2",
+    "keycloak-connect": "^25.0.0",
+    "loglevel": "^1.8.1",
+    "minio": "^7.1.1",
+    "pg": "^8.11.3",
+    "promise-retry": "^2.0.1",
+    "semver": "^7.5.4",
+    "sequelize": "^6.32.1",
+    "sparql-http-client": "^2.4.2",
+    "tar-stream": "^3.1.6",
+    "uuid": "^9.0.0",
+    "wait-queue": "^1.1.4"
+  },
+  "devDependencies": {
+    "jest": "^29.6.3"
+  }
+}

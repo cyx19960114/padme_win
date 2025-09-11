@@ -1,0 +1,186 @@
+stages:
+  - fetch-version 🔎
+  - build 📦
+  - deploy 🚅
+  - release 🚀
+
+.common_release_config:
+  image: node:18
+  variables:
+    HUSKY: 0
+  before_script:
+    - npm install
+
+variables:
+  REGISTRY_STATION_SOFTWARE_IMAGE: $CI_REGISTRY_IMAGE/station-software
+  REGISTRY_DIND_IMAGE: $CI_REGISTRY_IMAGE/dind
+  REGISTRY_VAULT_IMAGE: $CI_REGISTRY_IMAGE/vault
+
+fetch_semantic_version:
+  extends: .common_release_config
+  stage: fetch-version 🔎
+  dependencies: []
+  script:
+    - echo "Fetching Station Software release version 🚧"
+    - npx semantic-release --dry-run
+    - echo "Release Version added to Artifacts ✅"
+  artifacts:
+    reports:
+      dotenv: variables.env
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+build_wizard_frontend:
+  stage: build 📦
+  image: node:18.18.2-bullseye-slim
+  script:
+    - echo "Building Wizard Frontend 🚧"
+    - cd wizard-frontend
+    - npm ci --omit=dev
+    - npm run build
+    - echo "Wizard Frontend Build Complete! ✅"
+  artifacts:
+    paths:
+      - wizard-frontend/build/
+    expire_in: 1 week
+
+build_station_frontend:
+  stage: build 📦
+  image: node:18.18.2-bullseye-slim
+  script:
+    - echo "Building Station Frontend 🚧"
+    - cd station-frontend
+    - npm install
+    - npm run build
+    - echo "Station Frontend Build Complete! ✅"
+  artifacts:
+    paths:
+      - station-frontend/build/
+    expire_in: 1 week
+
+build_station_software:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: build 📦
+  needs: ["build_station_frontend", "build_wizard_frontend"]
+  before_script:
+    - apk update && apk add git
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - '[ -n "$RELEASE_VERSION" ] && echo \{\"version\":\"$RELEASE_VERSION\"\} > version.json'
+  script:
+    - echo "Building Station Software 🚧"
+    - docker build --pull -t $REGISTRY_STATION_SOFTWARE_IMAGE:$CI_COMMIT_SHA -t $REGISTRY_STATION_SOFTWARE_IMAGE:$CI_COMMIT_REF_NAME .
+    - docker push $REGISTRY_STATION_SOFTWARE_IMAGE:$CI_COMMIT_SHA
+    - docker push $REGISTRY_STATION_SOFTWARE_IMAGE:$CI_COMMIT_REF_NAME
+    - echo "Station Software Build Complete! ✅"
+
+build_dind:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: build 📦
+  before_script:
+    - apk update && apk add git
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Build dind image!"
+    - docker build --pull -t $REGISTRY_DIND_IMAGE:$CI_COMMIT_SHA StationDeploymentFiles/dind
+    - docker push $REGISTRY_DIND_IMAGE:$CI_COMMIT_SHA
+    - echo "build complete!"
+
+build_vault:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: build 📦
+  before_script:
+    - apk update && apk add git
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Build vault image!"
+    - docker build --pull -t $REGISTRY_VAULT_IMAGE:$CI_COMMIT_SHA StationDeploymentFiles/pht-vault
+    - docker push $REGISTRY_VAULT_IMAGE:$CI_COMMIT_SHA
+    - echo "build complete!"
+
+deploy_image_branch:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: deploy 🚅
+  dependencies:
+    - fetch_semantic_version
+  variables:
+    CI_HARBOR_REGISTRY: repository.padme-analytics.de/stationsoftware
+    HARBOR_STATION_SOFTWARE_IMAGE: $CI_HARBOR_REGISTRY/station-software
+    HARBOR_DIND_IMAGE: $CI_HARBOR_REGISTRY/dind
+    HARBOR_VAULT_IMAGE: $CI_HARBOR_REGISTRY/vault
+  before_script:
+    - apk update && apk add git
+    - echo $HARBOR_REGISTRY_PASSWORD | docker login -u $HARBOR_REGISTRY_USER --password-stdin $HARBOR_REGISTRY
+  script:
+    - echo "Deploying Station Software image to Harbor with version v$RELEASE_VERSION 🚅"
+    - docker tag $REGISTRY_STATION_SOFTWARE_IMAGE:$CI_COMMIT_SHA $HARBOR_STATION_SOFTWARE_IMAGE:$CI_COMMIT_BRANCH
+    - docker tag $REGISTRY_STATION_SOFTWARE_IMAGE:$CI_COMMIT_SHA $HARBOR_STATION_SOFTWARE_IMAGE:$RELEASE_VERSION
+    - docker push $HARBOR_STATION_SOFTWARE_IMAGE:$CI_COMMIT_BRANCH
+    - docker push $HARBOR_STATION_SOFTWARE_IMAGE:$RELEASE_VERSION
+    - docker tag $REGISTRY_DIND_IMAGE:$CI_COMMIT_SHA $HARBOR_DIND_IMAGE:$CI_COMMIT_BRANCH
+    - docker push $HARBOR_DIND_IMAGE:$CI_COMMIT_BRANCH
+    - docker tag $REGISTRY_VAULT_IMAGE:$CI_COMMIT_SHA $HARBOR_VAULT_IMAGE:$CI_COMMIT_BRANCH
+    - docker push $HARBOR_VAULT_IMAGE:$CI_COMMIT_BRANCH
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+release:
+  extends: .common_release_config
+  stage: release 🚀
+  dependencies: []
+  script:
+    - npx semantic-release
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+### COMMENTING FOR NOW
+### TEST COVERAGE CAN BE PRIORITIZED LATER
+# test_station_software:
+#   image: node:16.2.0
+#   stage: test
+#   needs:
+#     - build_station_software
+#   script:
+#     - echo "Test station software!"
+#     - ls
+#     - npm install
+#     - npx jest --ci --reporters=default --reporters=jest-junit
+#   artifacts:
+#     when: always
+#     reports:
+#       junit:
+#         - junit.xml
+
+# pages:
+#   image: ubuntu:latest
+#   stage: deploy
+#   rules:
+#     - if: "$CI_COMMIT_BRANCH==$CI_DEFAULT_BRANCH"
+#     - if: '$CI_COMMIT_BRANCH== "prerelease"'
+#   script:
+#     - cp Installscript/padmetools.sh public/
+#   artifacts:
+#     paths:
+#       - public
+
+# include:
+#   - template: Code-Quality.gitlab-ci.yml
+
+# code_quality:
+#   artifacts:
+#     expose_as: "Code Quality Report"
+#     paths: [gl-code-quality-report.json]
+#     expire_in: 365 days
+#   rules:
+#     - if: "$CODE_QUALITY_DISABLED"
+#       when: never
+#     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+#     - if: '$CI_COMMIT_BRANCH == "main"'
+#     - if: '$CI_COMMIT_BRANCH == "prerelease"'

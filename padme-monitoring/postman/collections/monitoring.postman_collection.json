@@ -1,0 +1,359 @@
+{
+	"info": {
+		"_postman_id": "7c93627b-c447-4343-b92c-b47916bf2f6c",
+		"name": "PADME Monitoring",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30091971"
+	},
+	"item": [
+		{
+			"name": "Trains",
+			"item": [
+				{
+					"name": "Get /",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/trains",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"trains"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get /:id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/trains/hello_world",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"trains",
+								"hello_world"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identifier\": \"breast_cancer_usecase_gmds\",\n  \"creator\": \"Hamza Akhtar\",\n  \"publisher\": \"Hamza Akhtar\",\n  \"title\": \"Breast Cancer Train\",\n  \"description\": \"An example PHT train which trains on breast cancer data to get aggregate statistics\",\n  \"analysisPurpose\": \"Train for training on the breast cancer data to find malignant or benign cases\",\n  \"version\": \"1.0.0\",\n  \"model\": \"Logistic Regression\",\n  \"createdAt\": \"2025-02-20T13:38:20.027510\",\n  \"updatedAt\": \"2025-02-20T13:38:20.027525\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/trains",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"trains"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update /:id",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"publisher\": \"Hamza Akhtar\",\n  \"title\": \"The Hello World Train\",\n  \"description\": \"An example PHT train which only displays the Hello World message for testing purposes.\",\n  \"analysisPurpose\": \"Train for testing purposes\",\n  \"version\": \"1.0.0\",\n  \"model\": \"Mean/Median/Mode\",\n  \"updatedAt\": \"2025-01-05T13:55:20.027525\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/trains/hello_world",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"trains",
+								"hello_world"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Stations",
+			"item": [
+				{
+					"name": "Get /",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/stations",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"stations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get /:id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/stations/5bce186a-5005-4ca8-878e-9d8d4e0747c0",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"stations",
+								"5bce186a-5005-4ca8-878e-9d8d4e0747c0"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identifier\": \"6408c5f7-c9c7-45f3-81c9-c9fb529f5fe9\",\n  \"title\": \"Klee-Muhammad\",\n  \"stationOwner\": \"Hamza Akhtar\",\n  \"responsibleForStation\": \"Hamza Akhtar\",\n  \"description\": \"Klee-Muhammad station in the RWTH Infrastructure\",\n  \"latitude\": \"150.1512315131\",\n  \"longitude\": \"60.31243124123\",\n  \"hasGPUSupport\": false,\n  \"totalGPUPower\": \"\",\n  \"totalCPUCores\": 16,\n  \"totalRAM\": \"64 GiB\",\n  \"totalDiskSpace\": \"1 TB\",\n  \"hasInternetConnectivity\": true,\n  \"networkBandwidth\": \"1 Gbps\",\n  \"createdAt\": \"2025-02-23T15:40:19.500102\",\n  \"updatedAt\": \"2025-02-23T15:40:19.500102\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/stations",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"stations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update /:id",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Bruegel\",\n  \"stationOwner\": \"Dr. Yongli Mou\",\n  \"responsibleForStation\": \"Hamza Akhtar\",\n  \"description\": \"Bruegel station in the RWTH Infrastructure\",\n  \"latitude\": \"150.1512315131\",\n  \"longitude\": \"60.31243124123\",\n  \"hasGPUSupport\": true,\n  \"totalGPUPower\": \"16 GiB\",\n  \"totalCPUCores\": 16,\n  \"totalRAM\": \"64 GiB\",\n  \"totalDiskSpace\": \"1 TB\",\n  \"hasInternetConnectivity\": true,\n  \"networkBandwidth\": \"1 Gbps\",\n  \"updatedAt\": \"2025-02-23T14:40:19.500102\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/stations/d7b0a9a7-07fd-4a31-b93a-3c946dc82667",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"stations",
+								"d7b0a9a7-07fd-4a31-b93a-3c946dc82667"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Jobs",
+			"item": [
+				{
+					"name": "Get /",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/jobs",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"jobs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get /:id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/jobs/5bce186a-5005-4ca8-878e-9d8d4e0747c0",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"jobs",
+								"5bce186a-5005-4ca8-878e-9d8d4e0747c0"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identifier\": \"65b74e90-2971-11ef-8a55-3dece858ffca\",\n  \"description\": \"Executing train on station Klee-Muhammad for training on breast cancer data\",\n  \"trainId\": \"breast_cancer_usecase_gmds\",\n  \"currentStation\": \"6408c5f7-c9c7-45f3-81c9-c9fb529f5fe9\",\n  \"creator\": \"Hamza Akhtar\",\n  \"plannedRoute\": [\n    \"6408c5f7-c9c7-45f3-81c9-c9fb529f5fe9\"\n  ],\n  \"createdAt\": \"2025-02-23T16:21:19.503489\",\n  \"updatedAt\": \"2025-02-23T16:21:19.503492\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/jobs",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"jobs"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "oauth2",
+		"oauth2": [
+			{
+				"key": "password",
+				"value": "{{KC_PASSWORD}}",
+				"type": "string"
+			},
+			{
+				"key": "accessTokenUrl",
+				"value": "{{KC_HOST}}/realms/{{KC_REALM}}/protocol/openid-connect/token",
+				"type": "string"
+			},
+			{
+				"key": "clientId",
+				"value": "{{KC_CLIENT_ID}}",
+				"type": "string"
+			},
+			{
+				"key": "tokenRequestParams",
+				"value": [],
+				"type": "any"
+			},
+			{
+				"key": "refreshRequestParams",
+				"value": [],
+				"type": "any"
+			},
+			{
+				"key": "username",
+				"value": "{{KC_USERNAME}}",
+				"type": "string"
+			},
+			{
+				"key": "client_authentication",
+				"value": "body",
+				"type": "string"
+			},
+			{
+				"key": "scope",
+				"value": "openid profile email offline_access",
+				"type": "string"
+			},
+			{
+				"key": "grant_type",
+				"value": "password_credentials",
+				"type": "string"
+			},
+			{
+				"key": "authRequestParams",
+				"value": [],
+				"type": "any"
+			},
+			{
+				"key": "authUrl",
+				"value": "http://localhost:8080/realms/monitoring/protocol/openid-connect/auth",
+				"type": "string"
+			},
+			{
+				"key": "useBrowser",
+				"value": true,
+				"type": "boolean"
+			},
+			{
+				"key": "tokenName",
+				"value": "keycloak",
+				"type": "string"
+			},
+			{
+				"key": "addTokenTo",
+				"value": "header",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}

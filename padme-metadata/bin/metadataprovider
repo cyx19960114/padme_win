@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+import logging
+import sys
+import signal
+from pathlib import Path
+from queue import SimpleQueue
+
+import rdflib
+# needed for starting the http interface
+import tornado.ioloop
+from tornado import httpserver
+
+from apscheduler.schedulers.tornado import TornadoScheduler
+from metadataInfrastructure.Configuration import MetadataProviderConfiguration
+from metadataInfrastructure.Configuration import EnvMap
+from metadataInfrastructure.Configuration import StationIriConfiguration, GatewayConfiguration, EventFilterConfiguration
+
+
+from metadataInfrastructure.HTTPInterface.server import createApp
+from metadataInfrastructure.HTTPInterface.flushing_handler import create_app as create_flush_app
+from metadataInfrastructure.MetadataBuffer import MetadataContainerBuffer
+from metadataInfrastructure.PHTMetadataGenerator import \
+    DynamicMetadataGenerator, DynamicCentralMetadataGenerator, Static_Train_Instance_Metadata_Generator
+from metadataInfrastructure.Gateway import EventFilter, Gateway, SignedPostDataUpLink
+
+logging.basicConfig(level=logging.INFO)
+"""
+Load the Configuration from the folder
+"""
+
+
+def load_configuration():
+    logging.debug("Loading Config...")
+    # load configuration from configuration file
+    c = MetadataProviderConfiguration(EnvMap.configuration_folder())
+    c.create_configuration_folder()
+    # load station iri config
+    if EnvMap.station_iri() is None:
+        # station iri is not set via env
+        if c.station_iri_config_exists():
+            # load config from file
+            c.load_station_iri_config()
+        else:
+            # no config exists
+            c.set_station_iri_config(StationIriConfiguration(False, None))
+    else:
+        c.set_station_iri_config(StationIriConfiguration(True, EnvMap.station_iri()))
+
+    # load gateway configuration
+    if EnvMap.uplink_address() is None:
+        # uplink adress is not set via env
+        if c.gateway_config_exists():
+            c.load_gateway_config()
+        else:
+            c.set_gateway_config(GatewayConfiguration(False, None))
+    else:
+        # uplink is set via env, secret key cannot be set via env, hence we need to load it nevertheless
+        if c.gateway_config_exists():
+            c.load_gateway_config_key(EnvMap.uplink_address())
+        else:
+            c.set_gateway_config(GatewayConfiguration(True, EnvMap.uplink_address()))
+    
+    #load the event filter configuration
+    if c.filter_config_exists():
+        c.load_filter_config()
+    else:
+        c.set_filter_config(EventFilterConfiguration(False))
+    
+    return c
+
+
+
+# check if cleanup is issued:
+# for debug
+if "debug" in sys.argv:
+    logging.getLogger().setLevel(logging.DEBUG)
+
+# Actual start of the program:
+logging.info("Metadata provider started")
+
+c = load_configuration()
+logging.info(f"Uses station iri: {c.station_iri.iri}")
+
+gen_central = DynamicCentralMetadataGenerator()
+gen_static_train = Static_Train_Instance_Metadata_Generator()
+
+# initiliaze the metadata generator with the configured station Identifier
+gen = DynamicMetadataGenerator(c.station_iri)
+
+# load the triple filter module:
+event_filter = EventFilter(c.event_filter)
+
+# Buffer used for http endpoints:
+metadata_buffer = MetadataContainerBuffer(SimpleQueue())
+
+# set up uplink
+uplink = SignedPostDataUpLink(c.gateway, c.station_iri, http_method="PUT")
+# set up gateway
+gw = Gateway(metadata_buffer, uplink)
+gw.setFilter(event_filter)
+
+
+# the update routine that is executed if the scheduler is triggered
+async def updateRoutine():
+    await gw.flushToRemote()
+
+
+
+# for debug: trigger the updateRoutine directly when passing a debug flag to the program
+if len(sys.argv) > 1 and sys.argv[1] == "debug":
+    updateRoutine()
+
+
+# create the scheduler with the configured period in minutes
+scheduler = TornadoScheduler()
+logging.info(
+    f'Starting Scheduler with update period (min): { EnvMap.update_interval() }')
+scheduler.start()
+logging.info("Started Scheduler")
+
+
+# load the shacl definition:
+trainGraph = rdflib.Graph()
+stationGraph = rdflib.Graph()
+#trainSHACLPath = Path(__file__).parent.parent / 'Schema/Train/shacl.ttl'
+#stationSHACLPath = Path(__file__).parent.parent / 'Schema/Station/shacl.ttl'
+#trainGraph.parse(source=str(trainSHACLPath), format="turtle")
+#stationGraph.parse(source=str(stationSHACLPath), format="turtle")
+
+# start the http interface
+app = createApp(gen, gen_central, gen_static_train, event_filter,
+                trainGraph, stationGraph, metadata_buffer, c)
+
+# add flushing route
+app.add_rules([
+    (r"(.*)/flushbuffer", create_flush_app(updateRoutine))
+])
+
+server = httpserver.HTTPServer(app)
+
+
+scheduler.add_job(updateRoutine, trigger='interval',
+                  minutes=int(EnvMap.update_interval()))
+logging.info("Update Job added")
+
+server.listen(9988)
+
+def sigterm_handler(_signo, _stack_frame):
+    """Exit the program"""
+    scheduler.shutdown()
+    tornado.ioloop.IOLoop.current().stop()
+    exit(0)
+
+signal.signal(signal.SIGTERM, sigterm_handler)
+
+tornado.ioloop.IOLoop.current().start()

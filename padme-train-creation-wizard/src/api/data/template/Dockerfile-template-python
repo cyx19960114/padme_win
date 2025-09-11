@@ -1,0 +1,12 @@
+FROM python:3.11
+
+{env_var_labels}
+
+WORKDIR /home
+
+COPY {req_file_name} .
+RUN pip install --no-cache-dir -r {req_file_name}
+
+COPY . .
+
+CMD [ "python",  "{main_file_name}" ]

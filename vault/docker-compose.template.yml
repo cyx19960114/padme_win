@@ -1,0 +1,35 @@
+services:
+  vault:
+    image: ${VAULT_IMAGE}
+    ports:
+      #Port is binded to localhost -> Only accessible with ssh-tunnel
+      - "127.0.0.1:8215:8200"
+    environment:
+      - VAULT_ADDR=https://127.0.0.1:8200
+      - VAULT_API_ADDR=https://127.0.0.1:8200
+      - TLS_SAN=DNS:vault
+    volumes:
+      - vault-certs-ca:/certs/ca
+      - vault-certs-client:/certs/client
+      - vault-logs:/vault/logs
+      - vault-data:/vault/data
+    networks:
+      vaultnet:
+        aliases:
+          - vault
+    cap_add:
+      - IPC_LOCK
+    entrypoint: generate_cert.sh vault server -config=/vault/config/vault.json
+    restart: unless-stopped
+
+networks:
+  vaultnet:
+    name: vaultnet
+
+volumes:
+  vault-certs-ca:
+  vault-certs-client:
+    #Specify a name to make import into other compose files easier
+    name: vault-certs-client 
+  vault-logs:
+  vault-data:

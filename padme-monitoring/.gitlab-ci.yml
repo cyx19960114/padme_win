@@ -1,0 +1,85 @@
+stages:
+  - build 📦
+  - deploy 🚅
+
+variables:
+  CI_REGISTRY_BACKEND_IMAGE: $CI_REGISTRY_IMAGE/backend
+  CI_REGISTRY_FRONTEND_IMAGE: $CI_REGISTRY_IMAGE/frontend
+  MONITORING_SERVICE_BACKEND_IMAGE: $CI_REGISTRY_BACKEND_IMAGE:$CI_COMMIT_BRANCH
+  MONITORING_SERVICE_FRONTEND_IMAGE: $CI_REGISTRY_FRONTEND_IMAGE:$CI_COMMIT_BRANCH
+
+build_backend:
+  image: docker:23-dind
+  stage: build 📦
+  before_script:
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Building Monitoring Backend Docker Image 🚧"
+    - cd backend
+    - docker build --pull -t $CI_REGISTRY_BACKEND_IMAGE:$CI_COMMIT_SHA -t $CI_REGISTRY_BACKEND_IMAGE:$CI_COMMIT_BRANCH .
+    - docker push $CI_REGISTRY_BACKEND_IMAGE:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_BACKEND_IMAGE:$CI_COMMIT_BRANCH
+    - echo "Monitoring Backend Build Complete 🚧"
+
+.build_frontend:
+  image: docker:23-dind
+  stage: build 📦
+  variables:
+    FRONTEND_API_URL: https://monitoringapi.${SERVICE_DOMAIN}
+    FRONTEND_KEYCLOAK_SERVER_URL: https://auth.${PROD_SERVICE_DOMAIN}/auth
+    FRONTEND_KEYCLOAK_REALM: ${MONITORING_SERVICE_REALM}
+    FRONTEND_KEYCLOAK_CLIENT_ID: ${MONITORING_SERVICE_FRONTNED_CLIENT_ID}
+  before_script:
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Building Monitoring Frontend Docker Image 🚧"
+    - cd frontend
+    - env | grep '^FRONTEND_' >> .env || true
+    - docker build --pull -t $CI_REGISTRY_FRONTEND_IMAGE:$CI_COMMIT_SHA -t $CI_REGISTRY_FRONTEND_IMAGE:$CI_COMMIT_BRANCH .
+    - docker push $CI_REGISTRY_FRONTEND_IMAGE:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_FRONTEND_IMAGE:$CI_COMMIT_BRANCH
+    - echo "Monitoring Frontend Build Complete 🚧"
+
+build_frontend_staging:
+  extends: .build_frontend
+  environment:
+    name: staging
+  only:
+    - prerelease
+
+build_frontend_production:
+  extends: .build_frontend
+  environment:
+    name: production
+  only:
+    - main
+
+.deploy_monitoring_service:
+  image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/deployment/image:main
+  stage: deploy 🚅
+  environment:
+    url: https://monitoring.${SERVICE_DOMAIN}
+  before_script:
+    - ssh-add <(echo "$DEPLOYMENT_TARGET_SSH_KEY")
+  script:
+    # Build compose file
+    - substitute_envs.sh docker-compose.template.yml docker-compose.yml
+    # Clone the compose file to the host, then login to host and pull + docker compose up
+    - ssh $DEPLOYMENT_TARGET_HOST "mkdir -p $DEPLOYMENT_TARGET_DIR"
+    - scp docker-compose.yml $DEPLOYMENT_TARGET_HOST:$DEPLOYMENT_TARGET_DIR
+    - ssh $DEPLOYMENT_TARGET_HOST "echo '$CI_JOB_TOKEN' | docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY"
+    - ssh $DEPLOYMENT_TARGET_HOST "cd $DEPLOYMENT_TARGET_DIR && docker compose pull && docker compose up -d"
+
+deploy_monitoring_service_staging:
+  extends: .deploy_monitoring_service
+  environment:
+    name: staging
+  only:
+    - prerelease
+
+deploy_monitoring_service_production:
+  extends: .deploy_monitoring_service
+  environment:
+    name: production
+  only:
+    - main

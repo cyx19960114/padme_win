@@ -1,0 +1,92 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  CI_REGISTRY_IMAGE_BACKEND: $CI_REGISTRY_IMAGE/central-backend
+  BACKEND_IMAGE: $CI_REGISTRY_IMAGE_BACKEND:$CI_COMMIT_BRANCH
+  CI_REGISTRY_IMAGE_FRONTEND: $CI_REGISTRY_IMAGE/frontend
+  FRONTEND_IMAGE: $CI_REGISTRY_IMAGE_FRONTEND:$CI_COMMIT_BRANCH
+  CI_REGISTRY_IMAGE_BLAZEGRAPH: $CI_REGISTRY_IMAGE/blazegraph
+  BLAZEGRAPH_IMAGE: $CI_REGISTRY_IMAGE_BLAZEGRAPH:$CI_COMMIT_BRANCH
+  DIND_IMAGE: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/dind/dind:$CI_COMMIT_BRANCH
+
+build_backend:
+  image: docker:23-dind
+  stage: build
+  before_script:
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - cd backend
+    - echo "Building Playground Backend Docker image"
+    - docker build --pull -t $CI_REGISTRY_IMAGE_BACKEND:$CI_COMMIT_BRANCH .
+    - docker push $CI_REGISTRY_IMAGE_BACKEND:$CI_COMMIT_BRANCH
+    - echo "Playground Backend Docker build complete"
+
+.build_frontend:
+  image: docker:23-dind
+  stage: build
+  before_script:
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - cd frontend
+    - echo "Building Playground Frontend Docker image"
+    - docker build --pull -t $CI_REGISTRY_IMAGE_FRONTEND:$CI_COMMIT_BRANCH --build-arg SERVICE_DOMAIN=${SERVICE_DOMAIN} --build-arg PROD_SERVICE_DOMAIN=${PROD_SERVICE_DOMAIN} .
+    - docker push $CI_REGISTRY_IMAGE_FRONTEND:$CI_COMMIT_BRANCH
+    - echo "Playground Frontend Docker build complete"
+
+build_frontend_staging:
+  extends: .build_frontend
+  environment:
+    name: staging
+  only:
+    - prerelease
+
+build_frontend_production:
+  extends: .build_frontend
+  environment:
+    name: production
+  only:
+    - main
+
+build_blazegraph:
+  image: docker:23-dind
+  stage: build
+  before_script:
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - cd external/blazegraph
+    - echo "Building Blazegraph Frontend Docker image"
+    - docker build --pull -t $CI_REGISTRY_IMAGE_BLAZEGRAPH:$CI_COMMIT_BRANCH .
+    - docker push $CI_REGISTRY_IMAGE_BLAZEGRAPH:$CI_COMMIT_BRANCH
+    - echo "Playground Blazegraph Docker build complete"
+
+.deploy_playground:
+  image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/deployment/image:main
+  stage: deploy
+  environment:
+    url: https://playground.${SERVICE_DOMAIN}
+  before_script:
+    - ssh-add <(echo "$DEPLOYMENT_TARGET_SSH_KEY")
+  script:
+    # Build compose file
+    - substitute_envs.sh docker-compose.template.yml docker-compose.yml
+    # Clone the compose file to the host, then login to host and pull + docker compose up
+    - ssh $DEPLOYMENT_TARGET_HOST "mkdir -p $DEPLOYMENT_TARGET_DIR"
+    - scp docker-compose.yml $DEPLOYMENT_TARGET_HOST:$DEPLOYMENT_TARGET_DIR
+    - ssh $DEPLOYMENT_TARGET_HOST "echo '$CI_JOB_TOKEN' | docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY"
+    - ssh $DEPLOYMENT_TARGET_HOST "cd $DEPLOYMENT_TARGET_DIR && docker compose pull && docker compose up -d"
+
+deploy_playground_production:
+  extends: .deploy_playground
+  environment:
+    name: production
+  only:
+    - main
+
+deploy_playground_staging:
+  extends: .deploy_playground
+  environment:
+    name: staging
+  only:
+    - prerelease

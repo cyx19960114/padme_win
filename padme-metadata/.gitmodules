@@ -1,0 +1,3 @@
+[submodule "Schema"]
+	path = Schema
+	url = https://github.com/LaurenzNeumann/PHTMetadata.git

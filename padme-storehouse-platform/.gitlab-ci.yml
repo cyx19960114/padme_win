@@ -1,0 +1,50 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  CI_REGISTRY_IMAGE_STORE_HOUSE: $CI_REGISTRY_IMAGE/storehouse-platform
+  STORE_HOUSE_IMAGE: $CI_REGISTRY_IMAGE_STORE_HOUSE:$CI_COMMIT_BRANCH
+
+build-store-house:
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  stage: build
+  before_script:
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Building Store house"
+    - docker build --pull -t $CI_REGISTRY_IMAGE_STORE_HOUSE:$CI_COMMIT_BRANCH .
+    - docker push $CI_REGISTRY_IMAGE_STORE_HOUSE:$CI_COMMIT_BRANCH
+    - echo "Store house build complete"
+
+.deploy-store-house:
+  environment:
+    url: https://storehouse.${SERVICE_DOMAIN}
+  image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/deployment/image:main
+  stage: deploy
+  before_script:
+    - ssh-add <(echo "$DEPLOYMENT_TARGET_SSH_KEY")
+  script:
+    # Build compose file
+    - substitute_envs.sh docker-compose.template.yml docker-compose.yml
+    # Clone the compose file to the host, then login to host and pull + docker compose up
+    - ssh $DEPLOYMENT_TARGET_HOST "mkdir -p $DEPLOYMENT_TARGET_DIR"
+    - scp docker-compose.yml $DEPLOYMENT_TARGET_HOST:$DEPLOYMENT_TARGET_DIR
+    - ssh $DEPLOYMENT_TARGET_HOST "echo '$CI_JOB_TOKEN' | docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY"
+    - ssh $DEPLOYMENT_TARGET_HOST "cd $DEPLOYMENT_TARGET_DIR && docker compose pull && docker compose up -d"
+
+deploy_store_house_production:
+  extends: .deploy-store-house
+  environment:
+    name: production
+  only:
+    - main
+
+deploy_store_house_staging:
+  extends: .deploy-store-house
+  environment:
+    name: staging
+  only:
+    - prerelease

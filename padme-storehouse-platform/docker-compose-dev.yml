@@ -1,0 +1,46 @@
+version: '3.5'
+
+services:
+  storehouse:
+    build: 
+      context: .
+    container_name: storehouse-$USER
+    entrypoint: ["/bin/sh", "-c", "while sleep 1000; do :; done"]
+    restart: unless-stopped
+    environment:
+      VIRTUAL_HOST: "klee.informatik.rwth-aachen.de"
+      VIRTUAL_PORT: 5001
+      VIRTUAL_PATH: "/storehouse-$USER"
+      WAPP_APPLICATION_ROOT: "/storehouse-$USER/"
+      API_APPLICATION_ROOT: "/storehouse-$USER/api"
+      VAULT_URL: "https://vault:8200"
+      VAULT_ROLE_ID: ${VAULT_ROLE_ID}
+      VAULT_SECRET_ID: ${VAULT_SECRET_ID}
+      GITLAB_URL: "https://depot.padme-analytics.de"
+      ENVIRONMENT: DEV
+      KC_REALM: "pht"
+      KC_CLIENT_ID: "storehouse"
+      KC_URL: "https://auth.padme-analytics.de/auth"
+      KC_USERINFO_URL: "https://auth.padme-analytics.de/auth/realms/pht/protocol/openid-connect/userinfo"
+      GITLAB_GROUP_ID: 39
+      GITLAB_STORE_ID: 35
+      GITLAB_STORE_SUBFOLDER_URL: "https://depot.padme-analytics.de/padme/padme-train-depot/-/tree/"
+      GITLAB_STORE_MAIN_BRANCH: "main"
+      GITLAB_FEDERATED_STORE_ID: 36
+      GITLAB_FEDERATED_STORE_SUBFOLDER_URL: "https://depot.padme-analytics.de/padme/padme-federated-train-depot/-/tree/"
+    volumes:
+      - vault-certs-client:/usr/src/app/certs:ro
+      - "./:/usr/src/app:cached"
+    networks:
+      proxynet:
+      vaultnet:
+
+volumes:
+  vault-certs-client:
+    external: true
+
+networks:
+  vaultnet:
+    external: true
+  proxynet:
+    external: true

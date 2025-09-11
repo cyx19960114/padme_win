@@ -1,0 +1,40 @@
+<section id="appstore-view-image-summary" class="appstore__page page__view-image-summary">
+    <div id="train_project_name">
+        <p style="text-align: center;">Official Train Store Branch Selected:&nbsp;<span id="ofc_branch" style="font-weight: bold;"></span></p>
+        <p style="text-align: center;">Official Train Store Project Name:&nbsp;<span id="ofc_project" style="font-weight: bold;"></span></p>
+        <p style="text-align: center;">Average Train Image Rating:&nbsp;<span id="train_rating" style="font-weight: bold;"></span>/5&nbsp;&nbsp;&nbsp;<a href="#" id="helpModal">Know more!</a></p>
+        <a id="train_project_url" target="_blank" rel="noopener noreferrer"></a>
+        <div id="myModal" class="modal">
+          <!-- Modal content -->
+            <div class="modal-content">
+              <span class="close">&times;</span>
+              <p>
+                  <h3>Guidelines for Train Image Approval Process:</h3>
+                <p>The Train image approval will initiate a merge request to the main branch in the Official Train Store repository.</p>
+                <p>The approval is only possible if all of these conditions are met:</p>
+                  <ul>
+                      <li>You have one of the following access level in the project: <i>Owner</i> and <i>Maintainer</i>.</li>
+                      <li>The selected Train image has received an average rating of 4.0 through ratings and feedback.</li>
+                      <li>The selected GitLab branch is any other branch than the main branch.</li>
+                  </ul>
+                  <p>Click on <b>Give Feedback</b> to record a rating and a comment for the selected Train image.</p>
+              </p>
+            </div>
+      </div>
+    </div><br>
+    <button class="collapsible">PHT Train Metadata</button>
+    <div class="content">
+      <table id="image_metadata"></table>
+    </div>
+    <button class="collapsible">PHT Train Connection Parameters</button>
+    <div class="content">
+      <table id="image_connection_params"></table>
+    </div>
+    <button class="collapsible">PHT Ratings and Feedback</button>
+    <div class="content">
+        <table id="image_feedback"></table>
+    </div>
+    <div id="approve-train-section" style="display:none;">
+        <button class="page__approve-train-btn" id="approve-train">Approve Train Image</button>
+    </div>
+</section>

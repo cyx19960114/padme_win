@@ -1,0 +1,17 @@
+FROM rocker/r-ver:latest
+
+{env_var_labels}
+
+WORKDIR /usr/local/src/myScripts
+
+## Copy files
+COPY  . .
+
+# Install debian packages
+RUN apt-get update -qq && apt-get install -y libxml2-dev libcurl4-openssl-dev libssl-dev
+
+## Run the install packages script
+RUN Rscript {req_file_name}
+
+## Run the script
+CMD Rscript {main_file_name}

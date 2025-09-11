@@ -1,0 +1,101 @@
+services:
+  postgres-db:
+    image: postgres:17
+    container_name: monitoring-db
+    restart: unless-stopped
+    volumes:
+      - monitoring-db-data:/var/lib/postgresql/data/pgdata
+    networks:
+      - monitoring-net
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_DB: ${MONITORING_SERVICE_DB_URL_DATABASE}
+      POSTGRES_USER: ${MONITORING_SERVICE_DB_USERNAME}
+      POSTGRES_PASSWORD: ${MONITORING_SERVICE_DB_PASSWORD}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${MONITORING_SERVICE_DB_USERNAME} -d ${MONITORING_SERVICE_DB_URL_DATABASE}",
+        ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+
+  redis:
+    image: redis:alpine
+    container_name: monitoring-redis
+    networks:
+      - monitoring-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  backend:
+    image: ${MONITORING_SERVICE_BACKEND_IMAGE}
+    container_name: monitoring-backend
+    restart: unless-stopped
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+        restart: true
+    networks:
+      - monitoring-net
+      - proxynet
+    environment:
+      VIRTUAL_HOST: "monitoringapi.${SERVICE_DOMAIN}, www.monitoringapi.${SERVICE_DOMAIN}"
+      LETSENCRYPT_HOST: "monitoringapi.${SERVICE_DOMAIN}, www.monitoringapi.${SERVICE_DOMAIN}"
+      VIRTUAL_PORT: 8000
+
+      # Backend
+      PROJECT_NAME: PADME Monitoring
+      DOMAIN: monitoring.${SERVICE_DOMAIN}
+      FRONTEND_HOST: https://monitoring.${SERVICE_DOMAIN}
+      ENVIRONMENT: production
+      BACKEND_CORS_ORIGINS: "https://monitoring.${SERVICE_DOMAIN}"
+
+      # Database
+      DB_URL_HOST: postgres-db
+      DB_URL_PORT: 5432
+      DB_URL_DATABASE: ${MONITORING_SERVICE_DB_URL_DATABASE}
+      DB_USERNAME: ${MONITORING_SERVICE_DB_USERNAME}
+      DB_PASSWORD: ${MONITORING_SERVICE_DB_PASSWORD}
+
+      # Redis
+      REDIS_HOST: "redis"
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+
+      # Keycloak
+      # IMPORTANT: Please add '/' at the end of the keycloak auth url.
+      # Otherwise we get 'KeycloakPostError: 404'
+      KEYCLOAK_SERVER_URL: https://auth.${PROD_SERVICE_DOMAIN}/auth/
+      KEYCLOAK_REALM: ${MONITORING_SERVICE_REALM}
+      KEYCLOAK_CLIENT_ID: ${MONITORING_SERVICE_BACKEND_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${MONITORING_SERVICE_BACKEND_CLIENT_SECRET}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    image: ${MONITORING_SERVICE_FRONTEND_IMAGE}
+    container_name: monitoring-frontend
+    restart: unless-stopped
+    networks:
+      - proxynet
+    environment:
+      VIRTUAL_HOST: "monitoring.${SERVICE_DOMAIN}, www.monitoring.${SERVICE_DOMAIN}"
+      LETSENCRYPT_HOST: "monitoring.${SERVICE_DOMAIN}, www.monitoring.${SERVICE_DOMAIN}"
+
+networks:
+  monitoring-net:
+  proxynet:
+    external: true
+
+volumes:
+  monitoring-db-data:

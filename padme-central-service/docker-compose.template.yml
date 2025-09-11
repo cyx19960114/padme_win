@@ -1,0 +1,132 @@
+# cs_compose_version: 1.0
+
+version: '3.5'
+services:
+
+  centralservice:
+    image: ${CENTRAL_SERVICE_IMAGE}
+    restart: unless-stopped
+    networks:
+      centernetwork:
+      proxynet:
+      vaultnet:
+    environment:
+      VIRTUAL_HOST: "requester.${SERVICE_DOMAIN}, www.requester.${SERVICE_DOMAIN}"
+      LETSENCRYPT_HOST: "requester.${SERVICE_DOMAIN}, www.requester.${SERVICE_DOMAIN}"
+      HOST_ADDRESS: requester.${SERVICE_DOMAIN}
+      HOST_PORT: 443
+      HOST_BASE: ""
+      DB_USERNAME: postgres
+      DB_PASSWORD: ${CENTRAL_SERVICE_POSTGRES_PASSWORD}
+      DB_HOST: center_database
+      HARBOR_ADDRESS: repository.${PROD_SERVICE_DOMAIN}
+      HARBOR_PORT: 443
+      HARBOR_ADMIN_USER: ${CENTRAL_SERVICE_HARBOR_ADMIN_USER}
+      HARBOR_ADMIN_PASSWORD: ${CENTRAL_SERVICE_HARBOR_ADMIN_PASSWORD}
+      HARBOR_ADMIN_CLI_SECRET: ${CENTRAL_SERVICE_HARBOR_CLI_SECRET}
+      HARBOR_WEBHOOK_SECRET: ${CENTRAL_SERVICE_HARBOR_WEBHOOK_SECRET}
+      AUTH_SERVER_ADDRESS: auth.${PROD_SERVICE_DOMAIN}
+      REACT_APP_AUTH_SERVER_ADDRESS: auth.${PROD_SERVICE_DOMAIN}
+      AUTH_SERVER_PORT: 443
+      AUTH_SERVER_ADMIN_CLI_USERNAME: ${CENTRAL_SERVICE_AUTH_SERVER_ADMIN_USERNAME}
+      AUTH_SERVER_ADMIN_CLI_PASSWORD: ${CENTRAL_SERVICE_AUTH_SERVER_ADMIN_PASSWORD}
+      STATION_REGISTRY_ADDRESS: ${CENTRAL_SERVICE_STATION_REGISTRY_ADDRESS}
+      STATION_REGISTRY_PORT: 443
+      STATION_REGISTRY_JWT_SECRET: ${CENTRAL_SERVICE_STATION_REGISTRY_JWT_SECRET}
+      STATION_REGISTRY_API_ADDRESS: ${CENTRAL_SERVICE_STATION_REGISTRY_API_ADDRESS}
+      VAULT_HOST: vault
+      VAULT_PORT: 8200
+      VAULT_ROLE_ID: ${CENTRAL_SERVICE_VAULT_ROLE_ID}
+      VAULT_SECRET_ID: ${CENTRAL_SERVICE_VAULT_SECRET_ID}
+      SLACK_BOT_TOKEN: ${CENTRAL_SERVICE_SLACK_BOT_TOKEN}
+      SLACK_SIGNING_SECRET: ${CENTRAL_SERVICE_SLACK_SIGNING_SECRET}
+      SLACK_PADME_CHANNEL_ID: ${CENTRAL_SERVICE_SLACK_CHANNEL_ID}
+      SLACK_INTEGRATION_ENABLED: ${CENTRAL_SERVICE_SLACK_INTEGRATION_ENABLED}
+      MINIO_PORT: ${CENTRAL_SERVICE_S3_PORT}
+      MINIO_ENDPOINT: ${CENTRAL_SERVICE_S3_ENDPOINT}
+      MINIO_USE_SSL: ${CENTRAL_SERVICE_S3_USE_SSL}
+      MINIO_ADMIN_USER: ${CENTRAL_SERVICE_S3_ACCESS_KEY}
+      MINIO_ADMIN_PASSWORD: ${CENTRAL_SERVICE_S3_SECRET_KEY}
+      STATION_LIST_CACHE_TTL: 300 # in seconds
+      REACT_APP_CS_API_ENDPOINT: "https://requester.${SERVICE_DOMAIN}" #{Protocol}://{HOST_ADDRESS}:{HOST_PORT}/{HOST_BASE}
+      REACT_APP_CS_PORTAL_ENDPOINT: "https://${SERVICE_DOMAIN}"
+      MAIL_HOST: ${CENTRAL_SERVICE_MAIL_HOST}
+      MAIL_PORT: ${CENTRAL_SERVICE_MAIL_PORT}
+      MAIL_USERNAME: ${CENTRAL_SERVICE_MAIL_USER} #Keep empty if no user is required
+      MAIL_PASSWORD: ${CENTRAL_SERVICE_MAIL_PASSWORD} #Keep empty if no password is
+      MAIL_USESMTPS: ${CENTRAL_SERVICE_MAIL_USE_TLS} #<true,false>
+      MAIL_VERIFYSMTPS: ${CENTRAL_SERVICE_MAIL_VERIFY_TLS} #<true,false>
+      MAIL_FROMADDRESS: ${MAIL_FROM_ADDRESS}
+      MAIL_REPLYTOADDRESS: ${MAIL_REPLY_TO_ADDRESS}
+      STORE_ENROLLMENT_SECRET: ${METADATA_STORE_REGISTRY_KEY}
+      METADATA_STORE_URL: "https://metadata.${PROD_SERVICE_DOMAIN}/stations/enroll"
+      METADATA_STATION_IRI_PREFIX : "https://metadata.${PROD_SERVICE_DOMAIN}/entities/stations/"
+      MONITORING_API_ADDRESS: https://monitoringapi.${SERVICE_DOMAIN}
+    volumes:
+      - "dind-certs-client:/usr/src/app/dind-certs-client/certs:ro"
+      - "vault-certs-client:/usr/src/app/vault-certs-client/certs:ro"
+    depends_on:
+      - postgres_center
+      - dind
+
+  dind:
+    image: ${DIND_IMAGE}
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+      - DOCKER_TLS_SAN=DNS:dind
+    volumes:
+      - "dind-certs-ca:/certs/ca"
+      - "dind-certs-client:/certs/client"
+      - "dind-data:/var/lib/docker"
+    networks:
+      centernetwork:
+        aliases:
+          - dind
+    privileged: true
+    restart: unless-stopped
+
+  minio:
+    image: 'minio/minio'
+    restart: always
+    expose:
+      - "9000"
+      - "9001"
+    environment:
+      - "MINIO_ROOT_USER=${CENTRAL_SERVICE_MINIO_USER}"
+      - "MINIO_ROOT_PASSWORD=${CENTRAL_SERVICE_MINIO_PASSWORD}"
+      - "MINIO_BROWSER=off"
+    volumes:
+      - "minio_data:/data"
+    networks:
+      centernetwork:
+        aliases:
+          - minio
+    command: server /data --console-address ":9001"
+
+  postgres_center:
+    image: postgres:13
+    restart: unless-stopped
+    networks:
+      centernetwork:
+        aliases:
+          - center_database
+    environment:
+      POSTGRES_PASSWORD: ${CENTRAL_SERVICE_POSTGRES_PASSWORD}
+    volumes:
+      - "postgres_center_data:/var/lib/postgresql/data"
+
+networks:
+  proxynet:
+    external: true
+  vaultnet:
+    external: true
+  centernetwork:
+
+volumes:
+  postgres_center_data:
+  dind-certs-ca:
+  dind-certs-client:
+  dind-data:
+  minio_data:
+  vault-certs-client:
+    external: true

@@ -1,0 +1,38 @@
+stages:
+  - configure
+  - deploy
+
+generate-harbor-config:
+  image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/deployment/image:main
+  stage: configure
+  before_script:
+    - ssh-add <(echo "$DEPLOYMENT_TARGET_SSH_KEY")
+  script:
+    # Merge harbor configuration with user provided values
+    - cd scripts && chmod +x create-harbor-config.sh && ./create-harbor-config.sh "../harbor.template.yml" "$CUSTOM_HARBOR_CONFIG"
+  artifacts:
+    paths:
+       - harbor.template.yml
+
+deploy-harbor:
+  image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/deployment/image:main
+  stage: deploy
+  before_script:
+    - ssh-add <(echo "$DEPLOYMENT_TARGET_SSH_KEY")
+    # Get the UserID for the deployment on the TARGET_VM (needed for permission fix)
+    - export TARGET_DIR_UID=$(ssh $DEPLOYMENT_TARGET_HOST "id -u")
+  script:
+    # Substitute harbor configuration
+    - substitute_envs.sh harbor.template.yml harbor.yml
+    # Create substituted override file
+    - substitute_envs.sh docker-compose.override.template.yml docker-compose.override.yml
+    # Create the target directory and copy the files
+    - ssh $DEPLOYMENT_TARGET_HOST "mkdir -p $DEPLOYMENT_TARGET_DIR"
+    - scp docker-compose.override.yml scripts/prepare.sh harbor.yml $DEPLOYMENT_TARGET_HOST:$DEPLOYMENT_TARGET_DIR
+    # Run the prepare script
+    - ssh $DEPLOYMENT_TARGET_HOST "cd $DEPLOYMENT_TARGET_DIR && chmod +x prepare.sh && ./prepare.sh"
+    # Fix permissions
+    - fix_mounted_folder_permissions.sh $DEPLOYMENT_TARGET_HOST $DEPLOYMENT_TARGET_DIR common $TARGET_DIR_UID
+    - fix_mounted_folder_permissions.sh $DEPLOYMENT_TARGET_HOST $DEPLOYMENT_TARGET_DIR docker-compose.yml $TARGET_DIR_UID
+    # Run compose up 
+    - ssh $DEPLOYMENT_TARGET_HOST "cd $DEPLOYMENT_TARGET_DIR && docker compose pull && docker compose up -d"

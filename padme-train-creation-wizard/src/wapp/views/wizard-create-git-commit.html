@@ -1,0 +1,80 @@
+<section id="wizard-create-commit" class="wizard__page page__create-commit">
+  <div class="git_info">
+    <table id="git_table">
+      <tbody>
+        <tr class="public_git_link">
+          <td>
+            <label class="git_link">Official Train Store GitLab URL</label>
+          </td>
+          <td>
+            <!-- TODO: Make configurable -->
+            <a
+              href="https://depot.padme-analytics.de/padme/padme-train-depot"
+              id="git_link"
+              target="_blank"
+              rel="noopener noreferrer"
+              >https://depot.padme-analytics.de/padme/padme-train-depot</a
+            >
+          </td>
+        </tr>
+        <tr class="existing_branch_row">
+          <td>
+            <label class="git_branch"
+              >GitLab Branch (select from existing branches)
+              <span style="color: red">*</span></label
+            >
+          </td>
+          <td><select name="git_branch" id="git_branch"></select></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>
+            <input
+              type="checkbox"
+              id="git_branch_new"
+              name="git_branch_new"
+              value="git_branch_new"
+            />
+            <label for="git_branch_new"
+              >Create a new GitLab branch in the project repository</label
+            >
+          </td>
+        </tr>
+        <tr class="new_branch_row">
+          <td>
+            <label for="new_branch_name" class="new_branch_name"
+              >New Branch Name <span style="color: red">*</span></label
+            >
+          </td>
+          <td>
+            <input
+              type="text"
+              id="new_branch_name"
+              name="new_branch_name"
+              class="new_branch_name"
+            />
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <label for="commit_message" class="label_commit_message"
+              >Commit Message <span style="color: red">*</span></label
+            >
+          </td>
+          <td>
+            <textarea
+              id="commit_message"
+              name="commit_message"
+              class="commit_message"
+              rows="4"
+              cols="40"
+            ></textarea>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div id="create-commit-loading" style="display: none">
+    <img src="images/loading.gif" />
+  </div>
+</section>

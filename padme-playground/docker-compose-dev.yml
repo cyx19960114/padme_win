@@ -1,0 +1,127 @@
+services:
+
+  keycloak_postgres:
+    image: postgres:16.3
+    container_name: 'playground-keycloak-postgres'
+    environment:
+      - POSTGRES_PASSWORD=1234
+      - POSTGRES_USER=keycloak
+      - POSTGRES_DB=keycloak
+    volumes:
+      - "keycloak_potgres_data:/var/lib/postgresql/data"
+    networks:
+      playground-net:
+        aliases: 
+          - keycloak_postgres
+    restart: unless-stopped
+
+  keycloak:
+    build: ./external/keycloak
+    container_name: 'playground-keycloak'
+    command: "start --optimized"
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN_USER-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD-password}
+      - KC_DB_URL_HOST=keycloak_postgres
+      - KC_DB_URL_PORT=5432
+      - KC_DB_URL_DATABASE=keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=1234
+      - KC_HOSTNAME_URL=${KEYCLOAK_HOSTNAME_URL-https://localhost:8443}
+      - KC_HOSTNAME_ADMIN_URL=${KEYCLOAK_ADMIN_URL-https://localhost:8443}
+      - KC_HTTP_ENABLED=${KEYCLOAK_HTTP_ENABLED-true}
+      - KC_HOSTNAME_STRICT=${KEYCLOAK_HOSTNAME_STRICT-false}
+      - KC_HOSTNAME_STRICT_HTTPS=${KEYCLOAK_HOSTNAME_STRICT_HTTPS-false}
+      - KC_REDIRECT_URI=${KEYCLOAK_REDIRECT_URI-http://localhost:3030/*}
+    ports:
+      - "8443:8443"
+    depends_on:
+      - keycloak_postgres
+    networks:
+      playground-net:
+        aliases: 
+          - keycloak
+    restart: unless-stopped
+
+  backend:
+    build: 
+      context: ./
+      dockerfile: ./backend/Dockerfile.dev
+    #Portforwarding of local port 8080 to 8080 in the keycloak container (for some reason, nc terminates sometimes, therefore, we do it continuously)
+    #while :; do nc -l -k -p 8080 -c 'nc keycloak 8080'; done
+    #while sleep 1000; do :; done
+    entrypoint: ${COMMAND-/bin/sh -c "while :; do nc -l -k -p 8080 -c 'nc keycloak 8080'; done"}
+    restart: unless-stopped
+    container_name: playground-backend
+    depends_on: 
+      - dind
+      - blazegraph
+      - keycloak
+    networks:
+      playground-net:
+    ports: 
+      - "1234:1234"
+    environment: 
+      DOCKER_HOST: dind
+      DOCKER_PORT: 2376
+      NODE_ENV: development
+      KEYCLOAK_REALM: master
+      # We use localhost here because otherwise we get name mismatches (e.g. expected localhost, got keycloak) when validating tokens
+      # This is due to the tokens beeing created by the frontend, which uses localhost as a target
+      # However: We use a port forwarding with the nc command (see entrypoint above) and this way everything works
+      # KEYCLOAK_SERVER_URL: http://localhost:8080
+      KEYCLOAK_SERVER_URL: https://localhost:8443
+      KEYCLOAK_CLIENT_ID: playground
+      API_PORT: 1234
+      CORS_ORIGIN: "*"
+      LOGGER_LEVEL: debug
+      METADATA_ENDPOINT: http://blazegraph:9999/bigdata/sparql
+    volumes:
+      - "playground-dindcerts-client:/usr/src/app/backend/dind-certs-client/certs:ro"
+      - "./:/usr/src/app:cached"  
+
+  dind:
+    # This image is not publically accessible.
+    # You can:
+    # 1. replace it with docker:20.10.18-dind if you do not need our additions (see repo readme)
+    # 2. Build the image yourself locally from https://git.rwth-aachen.de/padme-development/dind
+    image: registry.git.rwth-aachen.de/padme-development/dind/dind:main
+    container_name: 'playground-dind'
+    restart: unless-stopped
+    environment:
+      DOCKER_TLS_CERTDIR: /certs
+      DOCKER_TLS_SAN: DNS:dind
+    volumes:
+      - "playground-dindcerts-ca:/certs/ca"
+      - "playground-dindcerts-client:/certs/client"
+    networks:
+      playground-net: 
+        aliases: 
+          - dind
+    privileged: true
+
+  blazegraph:
+    container_name: 'playground-blaze'
+    restart: unless-stopped
+    build: 
+      context: ./external/blazegraph
+      cache_from:
+        - blazegraph:latest
+    volumes:
+      - "playground-blazedata:/workdir/data/"
+    ports: 
+      - "9999:9999"
+    networks:
+      playground-net: 
+        aliases: 
+          - blazegraph
+
+networks:
+  playground-net:
+
+volumes:
+  keycloak_potgres_data:
+  playground-dindcerts-ca:
+  playground-dindcerts-client:
+  playground-blazedata:
+     name: "playground-blazedata"

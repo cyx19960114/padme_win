@@ -1,0 +1,96 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  CI_REGISTRY_IMAGE_PROXY: $CI_REGISTRY_IMAGE/reverseproxy
+  CI_REGISTRY_IMAGE_CERT_BOT: $CI_REGISTRY_IMAGE/cert-bot
+  PROXY_IMAGE: $CI_REGISTRY_IMAGE_PROXY:$CI_COMMIT_BRANCH
+  CERT_BOT_IMAGE: $CI_REGISTRY_IMAGE_CERT_BOT:$CI_COMMIT_BRANCH
+  DEPLOYMENT_RUNNER_TAGS: ""
+
+.build_reverse_proxy:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: build
+  before_script:
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Building Reverse Proxy"
+    - docker build --pull -t $PROXY_IMAGE --target $DOCKER_TARGET ReverseProxy
+    - docker push $PROXY_IMAGE
+    - echo "Reverse Proxy build complete"
+
+build_reverse_proxy_with_redirects:
+  extends: .build_reverse_proxy
+  variables:
+    DOCKER_TARGET: image-with-redirects
+  rules:
+    - if: ($CI_COMMIT_BRANCH == "main" && $PADME_MAIN_ENVIRONMENT != null) && $CI_MERGE_REQUEST_ID == null
+
+build_reverse_proxy:
+  extends: .build_reverse_proxy
+  variables:
+    DOCKER_TARGET: image
+  rules:
+    - if: ($CI_COMMIT_BRANCH != "main" || $PADME_MAIN_ENVIRONMENT == null) && $CI_MERGE_REQUEST_ID == null
+
+.build_cert_bot:
+  image: docker:23-dind
+  services:
+    - docker:23-dind
+  stage: build
+  before_script:
+    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Building Cert Bot"
+    - docker build --pull -t $CERT_BOT_IMAGE --target $DOCKER_TARGET CertBot
+    - docker push $CERT_BOT_IMAGE
+    - echo "Cert Bot build complete"
+
+build_cert_bot_with_redirects:
+  extends: .build_cert_bot
+  variables:
+    DOCKER_TARGET: image-with-redirects
+  rules:
+    - if: ($CI_COMMIT_BRANCH == "main" && $PADME_MAIN_ENVIRONMENT != null) && $CI_MERGE_REQUEST_ID == null
+
+build_cert_bot:
+  extends: .build_cert_bot
+  variables:
+    DOCKER_TARGET: image
+  rules:
+    - if: ($CI_COMMIT_BRANCH != "main" || $PADME_MAIN_ENVIRONMENT == null) && $CI_MERGE_REQUEST_ID == null
+
+.deploy_proxy:
+  environment:
+    url: https://${SERVICE_DOMAIN}
+  image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/deployment/image:main
+  stage: deploy
+  before_script:
+    - ssh-add <(echo "$DEPLOYMENT_TARGET_SSH_KEY")
+  script:
+    # Build compose file
+    - substitute_envs.sh docker-compose.template.yml docker-compose.yml
+    # Clone the compose file to the host, then login to host and pull + docker compose up
+    - ssh $DEPLOYMENT_TARGET_HOST "mkdir -p $DEPLOYMENT_TARGET_DIR"
+    - scp docker-compose.yml $DEPLOYMENT_TARGET_HOST:$DEPLOYMENT_TARGET_DIR
+    - ssh $DEPLOYMENT_TARGET_HOST "echo '$CI_JOB_TOKEN' | docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY"
+    - ssh $DEPLOYMENT_TARGET_HOST "cd $DEPLOYMENT_TARGET_DIR && docker compose pull && docker compose up -d"
+  tags:
+    - $DEPLOYMENT_RUNNER_TAGS
+
+deploy_proxy_production:
+  extends: .deploy_proxy
+  environment:
+    name: production
+  only:
+    - main
+
+deploy_proxy_staging:
+  extends: .deploy_proxy
+  environment:
+    name: staging
+  only:
+    - prerelease
