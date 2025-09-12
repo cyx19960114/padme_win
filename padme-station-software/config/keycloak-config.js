@@ -3,7 +3,7 @@ const axios = require('axios').default;
 
 let _keycloak;
 const authServerUrl = process.env.KC_AUTH_SERVER_URL || "https://localhost:8443";
-const realm = process.env.KC_REALM || "PHT-Station";
+const realm = process.env.KC_REALM || "pht";
 let _publicKey;
 
 let keycloakConfig = {
@@ -16,7 +16,7 @@ let keycloakConfig = {
 
 async function setPublicKey() {
     try {
-        const publicKeyUrl = process.env.KC_PUBLIC_KEY_URL || `http://pht-keycloak:8080/realms/PHT-Station`;
+        const publicKeyUrl = process.env.KC_PUBLIC_KEY_URL || `http://localhost:8090/realms/pht/protocol/openid-connect/certs`;
         const response = await axios.get(publicKeyUrl);
         const { public_key } = response.data;
         _publicKey = public_key;

@@ -9,16 +9,32 @@ const fs = require('fs');
 const dind_client_certs_path = '/usr/src/app/dind-certs-client/certs';
 
 const getInstance = () => {
+    // Check if we should use TLS or not based on environment variables
+    const dockerHost = process.env.DOCKER_HOST || 'tcp://dind:2375';
+    const useTLS = process.env.DOCKER_TLS_VERIFY !== '';
+    
+    let dockerConfig;
+    
+    if (useTLS) {
+        // Use TLS with certificates
+        dockerConfig = {
+            protocol: 'https',
+            host: 'dind',
+            port: 2376,
+            ca: fs.readFileSync(path.join(dind_client_certs_path, 'ca.pem')),
+            cert: fs.readFileSync(path.join(dind_client_certs_path, 'cert.pem')),
+            key: fs.readFileSync(path.join(dind_client_certs_path, 'key.pem'))
+        };
+    } else {
+        // Use plain HTTP without TLS
+        dockerConfig = {
+            protocol: 'http',
+            host: 'dind',
+            port: 2375
+        };
+    }
 
-    const docker = new Docker({
-        protocol: 'https',
-        host: 'dind',
-        port: 2376,
-        ca: fs.readFileSync(path.join(dind_client_certs_path, 'ca.pem')),
-        cert: fs.readFileSync(path.join(dind_client_certs_path, 'cert.pem')),
-        key: fs.readFileSync(path.join(dind_client_certs_path, 'key.pem'))
-    });
-
+    const docker = new Docker(dockerConfig);
     return docker;
 }
 const docker = getInstance();

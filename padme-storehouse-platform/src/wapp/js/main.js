@@ -622,6 +622,22 @@ const keycloak = new Keycloak({
 });
 
 function initKeycloak() {
+  // Check if it's local development mode
+  const isLocalMode = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  
+  if (isLocalMode) {
+    console.log("Local development mode detected - bypassing Keycloak authentication");
+    // Set fake credentials for local development
+    appstore.setSharedDataForKey("token", "dev-local-token-12345");
+    appstore.setSharedDataForKey("username", "local-dev-user");
+    appstore.setSharedDataForKey("gitlab-authenticated", true);
+    appstore.setSharedDataForKey("pat", "dev-local-pat");
+    
+    // Show local mode indicator
+    showLocalModeIndicator();
+    return;
+  }
+  
   keycloak
     .init({
       onLoad: "login-required",
@@ -660,6 +676,48 @@ function initKeycloak() {
   };
 
   keycloak;
+}
+
+function showLocalModeIndicator() {
+  // Create and show local mode banner
+  const banner = document.createElement('div');
+  banner.id = 'local-mode-banner';
+  banner.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #e8f5e8;
+    border-bottom: 2px solid #4caf50;
+    color: #2e7d32;
+    text-align: center;
+    padding: 10px;
+    font-weight: bold;
+    z-index: 10000;
+    animation: slideDown 0.5s ease-out;
+  `;
+  banner.innerHTML = `
+    🚀 本地开发模式 - Local Development Mode - 已自动跳过Keycloak认证
+    <style>
+      @keyframes slideDown {
+        from { transform: translateY(-100%); }
+        to { transform: translateY(0); }
+      }
+    </style>
+  `;
+  
+  document.body.insertBefore(banner, document.body.firstChild);
+  
+  // Auto-hide banner after 5 seconds
+  setTimeout(() => {
+    banner.style.opacity = '0';
+    banner.style.transition = 'opacity 1s';
+    setTimeout(() => {
+      if (banner.parentNode) {
+        banner.parentNode.removeChild(banner);
+      }
+    }, 1000);
+  }, 5000);
 }
 
 export function getCredentials() {

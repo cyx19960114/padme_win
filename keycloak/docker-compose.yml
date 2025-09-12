@@ -1,0 +1,51 @@
+services:
+  postgres_keycloak:
+    image: postgres:13
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: keycloak_local_password_2024
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+    volumes:
+      - "keycloak_postgres_data:/var/lib/postgresql/data"
+    networks:
+      keycloaknet:
+        aliases:
+          - keycloak_database
+    ports:
+      - "5433:5432"  # 映射到不同端口避免冲突
+
+  keycloak:
+    build: .
+    restart: unless-stopped
+    command: "start-dev"
+    environment:
+      # 本地化配置
+      VIRTUAL_HOST: "auth.localhost"
+      LETSENCRYPT_HOST: "auth.localhost"
+      VIRTUAL_PORT: 8080
+      # 数据库连接
+      KC_DB_URL_HOST: keycloak_database
+      KC_DB_URL_PORT: "5432"
+      KC_DB_URL_DATABASE: postgres
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: keycloak_local_password_2024
+      # Keycloak开发模式配置
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin_password_2024
+    depends_on:
+      - postgres_keycloak
+    ports:
+      - "8090:8080"  # 直接本地访问
+    networks:
+      keycloaknet:
+      proxynet:
+
+volumes:
+  keycloak_postgres_data:
+
+networks:
+  keycloaknet:
+    driver: bridge
+  proxynet:
+    external: true

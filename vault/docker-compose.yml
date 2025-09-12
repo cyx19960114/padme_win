@@ -1,0 +1,37 @@
+services:
+  vault:
+    build:
+      context: ./Vault
+    ports:
+      # 修改为本地访问，不限制只能通过SSH隧道
+      - "8215:8200"
+    environment:
+      - VAULT_ADDR=https://127.0.0.1:8200
+      - VAULT_API_ADDR=https://127.0.0.1:8200
+      - TLS_SAN=DNS:vault,DNS:localhost,IP:127.0.0.1
+    volumes:
+      - vault-certs-ca:/certs/ca
+      - vault-certs-client:/certs/client
+      - vault-logs:/vault/logs
+      - vault-data:/vault/data
+    networks:
+      vaultnet:
+        aliases:
+          - vault
+    cap_add:
+      - IPC_LOCK
+    entrypoint: generate_cert.sh vault server -config=/vault/config/vault.json
+    restart: unless-stopped
+
+networks:
+  vaultnet:
+    name: vaultnet
+    driver: bridge
+
+volumes:
+  vault-certs-ca:
+  vault-certs-client:
+    # 指定名称以便其他服务导入
+    name: vault-certs-client 
+  vault-logs:
+  vault-data:

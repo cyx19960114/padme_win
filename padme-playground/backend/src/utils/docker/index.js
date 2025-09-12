@@ -14,18 +14,30 @@ const _ = require('lodash');
  }
 
 const getInstance = () => {
-
     const options = getAgentOptions();
+    const useTLS = process.env.DOCKER_TLS_VERIFY !== '';
+    
+    let dockerConfig;
+    
+    if (useTLS) {
+        dockerConfig = {
+            protocol: 'https',
+            host: getDindHostname(),
+            port: process.env.DOCKER_PORT,
+            ca: options.ca, 
+            cert: options.cert,
+            key: options.key
+        };
+    } else {
+        // Non-TLS configuration for local development
+        dockerConfig = {
+            protocol: 'http',
+            host: getDindHostname().replace('tcp://', '').replace(':2375', ''),
+            port: process.env.DOCKER_PORT
+        };
+    }
 
-    const docker = new Docker({
-        protocol: 'https',
-        host: getDindHostname(),
-        port: process.env.DOCKER_PORT,
-        ca: options.ca, 
-        cert: options.cert,
-        key: options.key
-    });
-
+    const docker = new Docker(dockerConfig);
     return docker;
 }
 

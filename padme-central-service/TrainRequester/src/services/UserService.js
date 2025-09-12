@@ -2,7 +2,7 @@ import Keycloak from "keycloak-js";
 
 const _kc = new Keycloak({
   realm: "pht",
-  url: `https://${process.env.REACT_APP_AUTH_SERVER_ADDRESS}/auth`,
+  url: `${process.env.REACT_APP_AUTH_SERVER_ADDRESS}`,
   clientId: "central-service",
 });
 

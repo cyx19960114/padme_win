@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  gitlab:
+    image: 'gitlab/gitlab-ce:15.6.2-ce.0'
+    restart: always
+    hostname: 'depot.localhost'
+    environment:
+      VIRTUAL_HOST: "depot.localhost, www.depot.localhost, registry.localhost, www.registry.localhost"
+      VIRTUAL_PORT: 80
+      GITLAB_LOG_LEVEL: warn
+      GITLAB_OMNIBUS_CONFIG: |
+        # Configuration for Local Development
+        external_url 'http://depot.localhost:8091'
+        nginx['listen_port'] = 80
+        nginx['listen_https'] = false
+        
+        # Registry configuration
+        registry_external_url 'http://registry.localhost:8092'
+        registry_nginx['listen_port'] = 8092
+        registry_nginx['listen_https'] = false
+        
+        # Configuration for Keycloak Integration
+        gitlab_rails['omniauth_allow_single_sign_on'] = ['openid_connect']
+        gitlab_rails['omniauth_block_auto_created_users'] = false
+        gitlab_rails['omniauth_auto_link_user'] = ['openid_connect']
+        gitlab_rails['omniauth_providers'] = [
+          {
+            name: "openid_connect",
+            label: "Keycloak",
+            args: {
+              name: "openid_connect",
+              scope: ["openid", "profile", "email"],
+              response_type: "code",
+              issuer: "https://host.docker.internal:8090/realms/pht",
+              client_auth_method: "query",
+              discovery: true,
+              uid_field: "preferred_username",
+              client_options: {
+                identifier: "depot",
+                secret: "Tfg3LoZLbSM5a5pkcTamSqSvXzlyxSrP",
+                redirect_uri: "http://depot.localhost:8091/users/auth/openid_connect/callback"
+              }
+            }
+          }
+        ]
+        
+        # Disable HTTPS redirect for local development
+        nginx['redirect_http_to_https'] = false
+        
+        # Configure GitLab for local development
+        gitlab_rails['gitlab_signup_enabled'] = true
+        gitlab_rails['initial_root_password'] = 'padme123456'
+        
+        # Container registry settings
+        gitlab_rails['registry_enabled'] = true
+        gitlab_rails['registry_host'] = "registry.localhost"
+        gitlab_rails['registry_port'] = "8092"
+        gitlab_rails['registry_api_url'] = "http://localhost:8092"
+        gitlab_rails['registry_path'] = "/var/opt/gitlab/gitlab-rails/shared/registry"
+        
+        # Configure for local network
+        gitlab_rails['gitlab_host'] = 'depot.localhost'
+        gitlab_rails['gitlab_port'] = 8091
+        gitlab_rails['gitlab_https'] = false
+        
+    ports:
+      - "8091:80"
+      - "8092:8092"
+    volumes:
+      - train-depot-config:/etc/gitlab
+      - train-depot-logs:/var/log/gitlab  
+      - train-depot-data:/var/opt/gitlab
+    shm_size: '256m'
+    networks:
+      - padme-network
+
+volumes:
+  train-depot-config:
+  train-depot-logs:
+  train-depot-data:
+
+networks:
+  padme-network:
+    external: true

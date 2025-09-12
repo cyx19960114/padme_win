@@ -1,6 +1,44 @@
 <section id="wizard-gitlab-authentication" class="wizard__page">
   <div id="register_page" style="max-width: 500px; margin: auto">
+    <div id="local-mode-banner" style="display: none; text-align: center; padding: 20px; background-color: #e8f5e8; border: 2px solid #4caf50; border-radius: 10px; margin-bottom: 20px;">
+      <h3 style="color: #2e7d32; margin: 0;">🚀 本地开发模式</h3>
+      <p style="margin: 10px 0; color: #388e3c;">检测到本地环境，正在自动跳过GitLab身份验证...</p>
+      <div style="margin: 15px auto; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #4caf50; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      <p style="margin: 5px 0; color: #388e3c; font-size: 14px;">即将自动进入训练任务创建向导</p>
+    </div>
     <h2>Logon to PHT Train Creation Wizard</h2>
+    
+    <script>
+      // 检查是否为本地环境
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // 显示本地模式横幅
+        document.getElementById('local-mode-banner').style.display = 'block';
+        
+        // 隐藏登录表单
+        document.getElementById('register_page').style.opacity = '0.3';
+        
+        // 添加旋转动画样式
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `;
+        document.head.appendChild(style);
+        
+        // 2秒后触发跳过逻辑
+        setTimeout(() => {
+          console.log('Local mode: Auto-skipping GitLab authentication');
+          // 触发wizard的下一页逻辑
+          if (typeof wizard !== 'undefined') {
+            wizard.setSharedDataForKey("gitlab-authenticated", true);
+            wizard.setSharedDataForKey("pat", "dev-local-token");
+            wizard.viewNextPage();
+          }
+        }, 2000);
+      }
+    </script>
 
     <div class="input-container">
       <!-- <i class="fa fa-user icon"></i> -->

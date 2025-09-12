@@ -1,0 +1,162 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: pht-mongo
+    volumes:
+      - pht-mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin123456
+    networks:
+      - padme-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  dind:
+    image: docker:24-dind
+    container_name: pht-dind
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+      - DOCKER_TLS_SAN=DNS:pht-dind,DNS:localhost,IP:127.0.0.1
+    volumes:
+      - pht-dind-certs-ca:/certs/ca
+      - pht-dind-certs-client:/certs/client
+      - pht-dind-data:/var/lib/docker
+    networks:
+      - padme-network
+    privileged: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  vault:
+    image: hashicorp/vault:1.15
+    container_name: pht-vault
+    ports:
+      - "8201:8200"
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=station-root-token
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+      - VAULT_ADDR=http://127.0.0.1:8200
+      - VAULT_API_ADDR=http://127.0.0.1:8200
+    volumes:
+      - pht-vault-data:/vault/data
+    networks:
+      - padme-network
+    cap_add:
+      - IPC_LOCK
+    command: ["vault", "server", "-dev"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  pht-web:
+    image: padme-station-software:local
+    container_name: pht-web
+    ports:
+      - "3030:3030"
+    volumes:
+      - pht-dind-certs-client:/usr/src/app/dind-certs-client/certs:ro
+      - pht-web-lockfile-vol:/lockfiledir
+    environment:
+      # MongoDB Configuration
+      - MONGO_HOST=mongo
+      - MONGO_PORT=27017
+      - MONGO_USER=admin
+      - MONGO_PASSWORD=admin123456
+      - MONGO_DB=pht
+      - MONGO_AUTH_SOURCE=admin
+      
+      # Docker Configuration
+      - DOCKER_HOST=pht-dind
+      - DOCKER_PORT=2376
+      
+      # Harbor/Registry Configuration (using deployed Harbor)
+      - HARBOR_ADDRESS=localhost
+      - HARBOR_PORT=8080
+      
+      # Central Service Configuration (using local services)
+      - CENTRALSERVICE_ADDRESS=localhost
+      - CENTRALSERVICE_PORT=8091
+      - CENTRALSERVICE_ENDPOINT=http://localhost:8091
+      
+      # Authentication Configuration (using deployed Keycloak)
+      - AUTH_SERVER_ADDRESS=localhost
+      - AUTH_SERVER_PORT=8090
+      - KC_AUTH_SERVER_URL=http://localhost:8090
+      - KC_PUBLIC_KEY_URL=http://localhost:8090/realms/pht/protocol/openid-connect/certs
+      - REACT_APP_KC_AUTH_SERVER_URL=http://localhost:8090
+      - KC_REALM=pht
+      - KC_CLIENT_ID=pht-station
+      - KC_CLIENT_SECRET=9eDl3P2lWBhXvuYjy3rsCIi9MvOFFRak
+      - REACT_APP_KC_CLIENT_ID=pht-web
+      - REACT_APP_KC_REALM=pht
+      
+      # Vault Configuration
+      - VAULT_HOST=vault
+      - VAULT_PORT=8200
+      - VAULT_TOKEN=station-root-token
+      - VAULT_ADDR=http://vault:8200
+      
+      # Security Configuration
+      - JWT_SECRET=pht-station-jwt-secret
+      - SESSION_SECRET=pht-station-session-secret
+      
+      # Metadata Configuration
+      - METADATA_PROVIDER=http://metadata:9988
+      - METADATA_STORE=http://localhost:8001
+      
+      # Feature Configuration
+      - COSIGN_ENABLED=false
+      - NODE_ENV=development
+      
+      # Mount Configuration
+      - HOST_MOUNT_DIRECTORY=/tmp
+      
+    networks:
+      - padme-network
+    depends_on:
+      mongo:
+        condition: service_healthy
+      dind:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+    restart: unless-stopped
+
+  metadata:
+    image: nginx:alpine
+    container_name: pht-metadata
+    ports:
+      - "9988:80"
+    networks:
+      - padme-network
+    volumes:
+      - ./data/metadata:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
+networks:
+  padme-network:
+    external: true
+
+volumes:
+  pht-mongo-data:
+  pht-dind-certs-ca:
+  pht-dind-certs-client:
+  pht-dind-data:
+  pht-vault-data:
+  pht-web-lockfile-vol:

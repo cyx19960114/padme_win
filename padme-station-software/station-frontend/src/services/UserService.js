@@ -2,7 +2,7 @@ import Keycloak from "keycloak-js";
 import axios from "axios";
 
 async function getKeycloakConfig() {
-  const baseURL = process.env.NODE_ENV === "production" ? "/" : "http://127.0.0.1:3030/";
+  const baseURL = "/";
   const response = await axios.get(`${baseURL}dashboard/v2/keycloakConfig`);
   return response.data;
 }
@@ -14,24 +14,35 @@ let _kc;
  * callback function if successfully authenticated.
  */
 const initKeycloak = async (onAuthenticatedCallback) => {
-  const config = await getKeycloakConfig();
-  _kc = new Keycloak({
-    realm: config.realm,
-    url: config.url,
-    clientId: config.clientId,
-  });
+  try {
+    const config = await getKeycloakConfig();
+    _kc = new Keycloak({
+      realm: config.realm,
+      url: config.url,
+      clientId: config.clientId,
+    });
 
-  _kc
-    .init({
-      onLoad: "login-required",
-    })
-    .then((authenticated) => {
-      if (!authenticated) {
-        console.log("user is not authenticated..!");
-      }
-      onAuthenticatedCallback();
-    })
-    .catch(console.error);
+    _kc
+      .init({
+        onLoad: "check-sso",
+        silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
+      })
+      .then((authenticated) => {
+        if (!authenticated) {
+          console.log("user is not authenticated..!");
+        }
+        onAuthenticatedCallback();
+      })
+      .catch((error) => {
+        console.error("Keycloak initialization failed:", error);
+        // 即使Keycloak失败，也继续加载应用
+        onAuthenticatedCallback();
+      });
+  } catch (error) {
+    console.error("Failed to get Keycloak config:", error);
+    // 即使配置获取失败，也继续加载应用
+    onAuthenticatedCallback();
+  }
 };
 
 const doLogin = () => _kc.login();

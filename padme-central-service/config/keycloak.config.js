@@ -6,7 +6,7 @@ let _keycloak;
 var keycloakConfig = {
   clientId: "central-service-backend",
   bearerOnly: true,
-  serverUrl: `https://${getEnvOrThrow("AUTH_SERVER_ADDRESS")}/auth`,
+  serverUrl: `http://${getEnvOrThrow("AUTH_SERVER_ADDRESS")}:${getEnvOrThrow("AUTH_SERVER_PORT")}`,
   realm: "pht"
 };
 

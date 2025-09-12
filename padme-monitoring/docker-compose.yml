@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:17
+    container_name: monitoring-db
+    restart: unless-stopped
+    volumes:
+      - monitoring-db-data:/var/lib/postgresql/data/pgdata
+    networks:
+      - padme-network
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_DB: pht_monitoring
+      POSTGRES_USER: monitor
+      POSTGRES_PASSWORD: monitor123456
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U monitor -d pht_monitoring",
+        ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+
+  redis:
+    image: redis:alpine
+    container_name: monitoring-redis
+    restart: unless-stopped
+    networks:
+      - padme-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  backend:
+    image: padme-monitoring-backend:local
+    container_name: monitoring-backend
+    restart: unless-stopped
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8001:8000"
+    networks:
+      - padme-network
+    environment:
+      # Project
+      PROJECT_NAME: "PADME Monitoring"
+      DOMAIN: "localhost"
+      FRONTEND_HOST: "http://localhost:5174"
+      ENVIRONMENT: "local"
+      BACKEND_CORS_ORIGINS: "http://localhost,http://localhost:5174,https://localhost,https://localhost:5174"
+
+      # Database
+      DB_URL_HOST: postgres-db
+      DB_URL_PORT: 5432
+      DB_URL_DATABASE: pht_monitoring
+      DB_USERNAME: monitor
+      DB_PASSWORD: monitor123456
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+
+      # Keycloak configuration - connect to deployed Keycloak
+      KEYCLOAK_SERVER_URL: "http://host.docker.internal:8090"
+      KEYCLOAK_REALM: "pht"
+      KEYCLOAK_CLIENT_ID: "monitoring-backend"
+      KEYCLOAK_CLIENT_SECRET: "UaTNs6GCZUwmbGVB2haI4dPrxySiafQQ"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    image: padme-monitoring-frontend:local
+    container_name: monitoring-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5174:80"
+    networks:
+      - padme-network
+    environment:
+      # Frontend configuration
+      FRONTEND_API_URL: "http://localhost:8001"
+      FRONTEND_KEYCLOAK_SERVER_URL: "http://localhost:8090"
+      FRONTEND_KEYCLOAK_REALM: "pht"
+      FRONTEND_KEYCLOAK_CLIENT_ID: "monitoring-frontend"
+
+networks:
+  padme-network:
+    external: true
+
+volumes:
+  monitoring-db-data:

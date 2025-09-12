@@ -27,7 +27,7 @@ def login():
             message=message
         ), status_code)
     except Exception as exp:
-        message = exp.args[1]
+        message = str(exp) if exp.args else "Unknown error occurred"
         return make_response(jsonify(
             message=message
         ), InternalServerError.code)
@@ -46,7 +46,7 @@ def revoke():
             message=message
         ), status_code)
     except Exception as exp:
-        message = exp.args[1]
+        message = str(exp) if exp.args else "Unknown error occurred"
         return make_response(jsonify(
             message=message
         ), InternalServerError.code)
@@ -65,7 +65,7 @@ def verify():
             message=message
         ), status_code)
     except Exception as exp:
-        message = exp.args[1]
+        message = str(exp) if exp.args else "Unknown error occurred"
         return make_response(jsonify(
             message=message
         ), InternalServerError.code)

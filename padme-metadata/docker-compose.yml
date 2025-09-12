@@ -1,0 +1,63 @@
+# metadata_compose_version: 1.0
+# PADME Metadata Service - 本地化部署版本
+
+version: '3.5'
+services:
+
+  metadata_store:
+    image: padme-metadata:local
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3001:9988"  # 映射到本地端口3001，服务运行在9988
+    environment:
+      # 本地化配置
+      VIRTUAL_HOST: "localhost:3001"
+      LETSENCRYPT_HOST: "localhost:3001"
+      VIRTUAL_PORT: 9988
+      MSTORE_GRAPHSTORAGE: "SQL"
+      MSTORE_GRAPHSQL: "postgresql://postgres:metadata_graph_password_2024@graphdatabase/postgres"
+      MSTORE_DATABASE: "postgresql://postgres:metadata_mgmt_password_2024@managementdatabase/postgres"
+      MSTORE_HOST: "http://localhost:3001"
+      MSTORE_REGISTRYKEYS: "metadata_registry_key_2024"
+      MSTORE_TRAINCLASSKEYS: "metadata_train_class_keys_2024"
+      MSTORE_PORT: "9988"
+    networks:
+      - metadatanet
+      - proxynet
+    depends_on:
+      - graphdatabase
+      - managementdatabase
+
+  graphdatabase:
+    image: "postgres:14.5"
+    restart: "unless-stopped"
+    environment:
+      POSTGRES_PASSWORD: metadata_graph_password_2024
+    networks:
+      - metadatanet
+    volumes:
+      - graphdata:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"  # 映射GraphDB PostgreSQL端口
+  
+  managementdatabase:
+    image: "postgres:14.5"
+    restart: "unless-stopped"
+    environment:
+      POSTGRES_PASSWORD: metadata_mgmt_password_2024
+    networks:
+      - metadatanet
+    volumes:
+      - managementdata:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"  # 映射ManagementDB PostgreSQL端口
+
+networks:
+  proxynet:
+    external: true
+  metadatanet:
+
+volumes:
+  graphdata:
+  managementdata:

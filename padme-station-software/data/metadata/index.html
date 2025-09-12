@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PHT Metadata Service</title>
+</head>
+<body>
+    <h1>PHT Metadata Service</h1>
+    <p>Local development metadata provider</p>
+    <script>
+        // Simple API simulation
+        if (window.location.pathname === '/health') {
+            document.body.innerHTML = '{"status": "healthy"}';
+        } else if (window.location.pathname === '/config') {
+            document.body.innerHTML = '{"config": "local"}';
+        }
+    </script>
+</body>
+</html>

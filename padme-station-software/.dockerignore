@@ -12,11 +12,9 @@ Dockerfile.dev
 node_modules
 npm-debug.log
 
-# Project files
-wizard-frontend/*
-!wizard-frontend/build
-station-frontend/*
-!station-frontend/build
+# Project files  
+wizard-frontend/node_modules
+station-frontend/node_modules
 StationDeploymentFiles/*
 
 # Misc

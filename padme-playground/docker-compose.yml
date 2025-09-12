@@ -1,0 +1,103 @@
+# playground_compose_version: 1.0
+# PADME Playground - 本地化部署版本
+
+version: '3.5'
+services:
+
+  backend:
+    image: padme-playground-backend:local
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    container_name: playground-backend
+    ports:
+      - "3002:80"  # 映射Backend API端口
+    networks:
+      - playground-net
+      - proxynet
+    # volumes:
+      # - "playground-dindcerts-client:/usr/src/app/dind-certs-client/certs:ro"  # 不需要TLS证书
+    environment:
+      # Keycloak配置
+      KEYCLOAK_REALM: pht
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_CLIENT_ID: playground
+      
+      # API配置
+      API_PORT: 80
+      LOGGER_LEVEL: info
+      
+      # Docker配置（禁用TLS）
+      DOCKER_HOST: tcp://playground-dind:2375
+      DOCKER_PORT: 2375
+      DOCKER_TLS_VERIFY: ""
+      DOCKER_CERT_PATH: ""
+      
+      # 本地化CORS配置（允许多个源）
+      CORS_ORIGIN: "http://localhost:3003,http://localhost:3004"
+      
+      # Blazegraph配置
+      METADATA_ENDPOINT: http://blazegraph:9999/bigdata/sparql
+      
+      # 代理配置
+      VIRTUAL_HOST: "localhost:3002"
+      VIRTUAL_PORT: 80
+    depends_on:
+      - blazegraph
+      - dind
+
+  frontend:
+    image: padme-playground-frontend:local
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    container_name: playground-frontend
+    ports:
+      - "3003:80"  # 映射Frontend端口
+    networks:
+      - proxynet
+    environment:
+      VIRTUAL_HOST: "localhost:3003"
+
+  dind:
+    image: padme-playground-dind:local
+    build:
+      context: ./external
+      dockerfile: Dockerfile
+    container_name: 'playground-dind'
+    restart: unless-stopped
+    environment:
+      DOCKER_TLS_CERTDIR: ""  # 禁用TLS
+    networks:
+      playground-net:
+        aliases:
+          - playground-dind
+    privileged: true
+    
+  blazegraph:
+    image: padme-playground-blazegraph:local
+    build:
+      context: ./external/blazegraph
+      dockerfile: Dockerfile
+    container_name: 'playground-blaze'
+    restart: unless-stopped
+    ports: 
+      - "9998:9999"  # Blazegraph Web界面
+    volumes:
+      - "playground-blazedata:/workdir/data/"
+    networks:
+      playground-net:
+        aliases: 
+          - blazegraph
+
+networks:
+  playground-net:
+  proxynet:
+    external: true
+
+volumes:
+  playground-dindcerts-ca:
+  playground-dindcerts-client:
+  playground-blazedata:

@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  traincreator:
+    build: .
+    image: padme-train-creator:local
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      # 应用配置
+      VIRTUAL_HOST: "localhost:5000"
+      VIRTUAL_PORT: 5000
+      VIRTUAL_PATH: "/"
+      WAPP_APPLICATION_ROOT: "/"
+      API_APPLICATION_ROOT: "/api/"
+      APPLICATION_HOST: "0.0.0.0"
+      PORT: 5000
+      ENVIRONMENT: "DEV"
+      
+      # Vault配置 - 连接到已部署的Vault（本地开发模式）
+      VAULT_URL: "http://host.docker.internal:8200"
+      VAULT_ROLE_ID: "train-creator-role"
+      VAULT_SECRET_ID: "train-creator-secret"
+      VAULT_DEV_MODE: "true"
+      VAULT_SKIP_VERIFY: "true"
+      
+      # Keycloak配置 - 连接到已部署的Keycloak
+      KC_REALM: "pht"
+      KC_URL: "http://host.docker.internal:8090"
+      KC_CLIENT_ID: "train-creator"
+      KC_USERINFO_URL: "http://host.docker.internal:8090/realms/pht/protocol/openid-connect/userinfo"
+      
+      # GitLab配置 - 使用Harbor作为容器存储
+      GITLAB_URL: "http://host.docker.internal:8080"
+      GITLAB_GROUP_ID: "1"
+      GITLAB_STORE_ID: "1"
+      GITLAB_FEDERATED_STORE_ID: "2"
+      GITLAB_STORE_URL: "http://host.docker.internal:8080/harbor/projects/padme-trains"
+      GITLAB_FEDERATED_STORE_URL: "http://host.docker.internal:8080/harbor/projects/padme-federated-trains"
+      GITLAB_STORE_MAIN_BRANCH: "main"
+      
+    volumes:
+      # 数据持久化
+      - train-creator-data:/usr/src/app/api/data
+      # 缓存目录
+      - train-creator-cache:/root/.cache
+    networks:
+      - padme-network
+
+volumes:
+  train-creator-data:
+  train-creator-cache:
+
+networks:
+  padme-network:
+    external: true

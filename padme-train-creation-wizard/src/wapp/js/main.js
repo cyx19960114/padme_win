@@ -17,11 +17,43 @@ const TRAIN_TYPES = {
 // Wizard pages section
 const wizard = new Wizard();
 
-// Gitlab authentication page
+// Gitlab authentication page (modified for local development)
 wizard.addPage(
   "Gitlab Authentication",
   () => {
-    // on load event listener
+    // 检查是否为开发模式（通过检查域名是否为localhost）
+    const isDevMode = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    if (isDevMode) {
+      // 开发模式：直接跳过GitLab认证
+      console.log("Development mode detected - skipping GitLab authentication");
+      wizard.setSharedDataForKey("gitlab-authenticated", true);
+      wizard.setSharedDataForKey("pat", "dev-local-token");
+      // 延迟1秒后自动跳转，让用户看到跳过消息
+      setTimeout(() => {
+        wizard.viewNextPage();
+      }, 1000);
+      
+      // 显示跳过消息
+      $("#auth-loading").hide();
+      $(".wizard__content").html(`
+        <div style="text-align: center; padding: 40px;">
+          <h3>🚀 本地开发模式</h3>
+          <p>检测到本地环境，正在跳过GitLab身份验证...</p>
+          <p>即将自动进入训练任务创建向导</p>
+          <div class="loading-spinner" style="margin: 20px auto; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        </div>
+        <style>
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        </style>
+      `);
+      return;
+    }
+
+    // 生产模式：原始GitLab认证逻辑
     // disable the buttons
     wizard.disableRightButton();
     wizard.disableLeftButton();

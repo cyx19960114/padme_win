@@ -1,0 +1,51 @@
+services:
+  reverse_proxy:
+    build:
+      context: ./ReverseProxy
+      target: image
+    restart: unless-stopped
+    init: true
+    environment:
+      - ENABLE_IPV6=true
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - nginxproxy_certs:/etc/nginx/certs:ro
+      - nginxproxy_vhosts:/etc/nginx/vhost.d
+      - nginxproxy_html:/usr/share/nginx/html
+      - nginxproxy_conf:/etc/nginx/conf.d
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - proxynet
+    labels:
+      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=true"
+      - "com.github.nginx-proxy.nginx=true"
+
+  reverse_proxy_certs:
+    build:
+      context: ./CertBot
+      target: image
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - nginxproxy_certs:/etc/nginx/certs:rw
+      - nginxproxy_html:/usr/share/nginx/html
+      - nginxproxy_vhosts:/etc/nginx/vhost.d
+      - nginxproxy_conf:/etc/nginx/conf.d
+      - nginxcerts_acme:/etc/acme.sh
+    environment:
+      DEFAULT_EMAIL: admin@localhost
+    networks:
+      - proxynet
+
+volumes:
+  nginxproxy_certs:
+  nginxproxy_html:
+  nginxproxy_vhosts:
+  nginxcerts_acme:
+  nginxproxy_conf:
+
+networks:
+  proxynet:
+    driver: bridge

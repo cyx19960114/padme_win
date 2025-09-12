@@ -19,6 +19,16 @@ app.config["TEMP_FOLDER"] = os.path.join(app.root_path, config.TEMP_FOLDER)
 @app.before_request
 def is_authenticated():
     if request.path.startswith(config.API_APPLICATION_ROOT):
+        # Check if it's development mode
+        is_dev_mode = os.getenv("ENVIRONMENT") == "DEV"
+        
+        if is_dev_mode:
+            # In development mode, allow API access with dev token
+            auth_header = request.headers.get("Authorization")
+            if auth_header and "dev-local-token" in auth_header:
+                print(f"DEV mode: API access granted for {request.path}")
+                return
+        
         if request.headers.get("Authorization") is None:
             abort(401)
         else:
@@ -40,6 +50,11 @@ for blueprint in vars(wapp_page).values():
 if __name__ == "__main__":
     if not app.debug or app.debug and werkzeug.serving.is_running_from_reloader():
         #Init the vault service -> Start token refresh routine
-        VaultService()
+        # 在开发模式下跳过Vault初始化以避免连接问题
+        vault_dev_mode = os.getenv("VAULT_DEV_MODE", "false").lower() == "true"
+        if not vault_dev_mode:
+            VaultService()
+        else:
+            print("Skipping Vault initialization in DEV mode")
     print("App running on: " + config.HOST + ":" + str(config.PORT))
     app.run(host=config.HOST, port=config.PORT, debug=True)

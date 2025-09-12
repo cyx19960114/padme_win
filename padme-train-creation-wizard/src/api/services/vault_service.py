@@ -10,11 +10,20 @@ class VaultService(object):
         if cls._instance is None:
             cls._instance = super(VaultService, cls).__new__(cls)
             vault_url = os.getenv("VAULT_URL")
-            vault_cert_path = os.getenv('VAULT_CERT_PATH', '/usr/src/app/certs')
-            server_cert = vault_cert_path + '/ca.pem'
-            client_cert = vault_cert_path + '/cert.pem'
-            client_key = vault_cert_path + '/key.pem'
-            cls._instance.client = hvac.Client(url=vault_url, verify=server_cert, cert=(client_cert, client_key))
+            vault_dev_mode = os.getenv("VAULT_DEV_MODE", "false").lower() == "true"
+            vault_skip_verify = os.getenv("VAULT_SKIP_VERIFY", "false").lower() == "true"
+            
+            if vault_dev_mode or vault_skip_verify:
+                # 开发模式：禁用TLS验证
+                cls._instance.client = hvac.Client(url=vault_url, verify=False)
+            else:
+                # 生产模式：使用TLS证书
+                vault_cert_path = os.getenv('VAULT_CERT_PATH', '/usr/src/app/certs')
+                server_cert = vault_cert_path + '/ca.pem'
+                client_cert = vault_cert_path + '/cert.pem'
+                client_key = vault_cert_path + '/key.pem'
+                cls._instance.client = hvac.Client(url=vault_url, verify=server_cert, cert=(client_cert, client_key))
+            
             #Trigger the renewal routine
             cls._instance.__login_with_app_role()
         return cls._instance
