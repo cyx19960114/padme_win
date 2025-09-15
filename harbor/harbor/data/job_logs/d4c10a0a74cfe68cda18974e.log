@@ -1,0 +1,35 @@
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:91]: start to run sweep job
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:150]: [REPLICATION] start to sweep, retain latest 50 executions
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:160]: [REPLICATION] listed 0 candidate executions for sweep
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:180]: [REPLICATION] end to sweep, 0 executions were deleted in total, elapsed time: 1.71575ms
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:150]: [SCAN_ALL] start to sweep, retain latest 5 executions
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:160]: [SCAN_ALL] listed 0 candidate executions for sweep
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:180]: [SCAN_ALL] end to sweep, 0 executions were deleted in total, elapsed time: 1.010569ms
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:150]: [SCAN_DATA_EXPORT] start to sweep, retain latest 50 executions
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:160]: [SCAN_DATA_EXPORT] listed 0 candidate executions for sweep
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:180]: [SCAN_DATA_EXPORT] end to sweep, 0 executions were deleted in total, elapsed time: 665.664µs
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:150]: [SLACK] start to sweep, retain latest 50 executions
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:160]: [SLACK] listed 0 candidate executions for sweep
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:180]: [SLACK] end to sweep, 0 executions were deleted in total, elapsed time: 788.323µs
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:150]: [RETENTION] start to sweep, retain latest 50 executions
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:160]: [RETENTION] listed 0 candidate executions for sweep
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:180]: [RETENTION] end to sweep, 0 executions were deleted in total, elapsed time: 1.233079ms
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:150]: [SYSTEM_ARTIFACT_CLEANUP] start to sweep, retain latest 50 executions
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:160]: [SYSTEM_ARTIFACT_CLEANUP] listed 0 candidate executions for sweep
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:180]: [SYSTEM_ARTIFACT_CLEANUP] end to sweep, 0 executions were deleted in total, elapsed time: 1.424757ms
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:150]: [WEBHOOK] start to sweep, retain latest 50 executions
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:160]: [WEBHOOK] listed 0 candidate executions for sweep
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:180]: [WEBHOOK] end to sweep, 0 executions were deleted in total, elapsed time: 738.634µs
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:150]: [EXECUTION_SWEEP] start to sweep, retain latest 10 executions
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:160]: [EXECUTION_SWEEP] listed 1 candidate executions for sweep
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:180]: [EXECUTION_SWEEP] end to sweep, 1 executions were deleted in total, elapsed time: 13.069912ms
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:150]: [GARBAGE_COLLECTION] start to sweep, retain latest 50 executions
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:160]: [GARBAGE_COLLECTION] listed 0 candidate executions for sweep
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:180]: [GARBAGE_COLLECTION] end to sweep, 0 executions were deleted in total, elapsed time: 1.116549ms
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:150]: [P2P_PREHEAT] start to sweep, retain latest 50 executions
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:160]: [P2P_PREHEAT] listed 0 candidate executions for sweep
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:180]: [P2P_PREHEAT] end to sweep, 0 executions were deleted in total, elapsed time: 4.977493ms
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:150]: [PURGE_AUDIT_LOG] start to sweep, retain latest 10 executions
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:160]: [PURGE_AUDIT_LOG] listed 0 candidate executions for sweep
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:180]: [PURGE_AUDIT_LOG] end to sweep, 0 executions were deleted in total, elapsed time: 796.239µs
+2025-09-15T17:00:00Z [INFO] [/pkg/task/sweep_job.go:115]: end to run sweep job
