@@ -47,7 +47,9 @@ theme = responsiveFontSizes(theme);
 
 const notistackRef = React.createRef();
 const root = ReactDOM.createRoot(document.getElementById("root"));
-const renderApp = () =>
+
+const renderApp = () => {
+  console.log("🎨 Rendering React app...");
   root.render(
     <Provider store={store}>
       <ThemeProvider theme={theme}>
@@ -67,6 +69,26 @@ const renderApp = () =>
       </ThemeProvider>
     </Provider>
   );
+};
 
-UserService.initKeycloak(renderApp);
-configureAxios();
+const initApp = async () => {
+  try {
+    console.log("🚀 Starting application initialization...");
+    
+    // 先配置axios
+    configureAxios();
+    console.log("✅ Axios configured");
+    
+    // 初始化Keycloak
+    await UserService.initKeycloak(renderApp);
+    console.log("✅ Keycloak initialization completed");
+    
+  } catch (error) {
+    console.error("❌ App initialization failed:", error);
+    // 即使Keycloak失败也要渲染应用
+    renderApp();
+  }
+};
+
+// 启动应用
+initApp();

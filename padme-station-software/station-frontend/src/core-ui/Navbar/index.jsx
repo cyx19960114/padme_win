@@ -130,6 +130,8 @@ export default function Navbar() {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [username, setUsername] = useState('');
   const { learning, stationID, stationName, stationVersion } = useSelector(
     (state) => state.station
   );
@@ -138,6 +140,30 @@ export default function Navbar() {
 
   useEffect(() => {
     dispatch(fetchStationInfo());
+    
+    // 检查认证状态
+    const checkAuthStatus = () => {
+      console.log("🔍 Navbar checking auth status...");
+      
+      // 刷新认证状态
+      UserService.refreshAuthStatus();
+      
+      const authenticated = UserService.isLoggedIn();
+      const currentUsername = UserService.getUsername();
+      
+      console.log(`📊 Auth status - Authenticated: ${authenticated}, Username: ${currentUsername}`);
+      
+      setIsAuthenticated(authenticated);
+      setUsername(currentUsername || '');
+    };
+    
+    // 立即检查一次
+    checkAuthStatus();
+    
+    // 定期检查认证状态
+    const interval = setInterval(checkAuthStatus, 1000);
+    
+    return () => clearInterval(interval);
   }, [dispatch]);
 
   const isMenuOpen = Boolean(anchorEl);
@@ -261,18 +287,34 @@ export default function Navbar() {
                 <RefreshIcon />
               </IconButton>
             </LightTooltip>
-            <Button
-              aria-label="user account"
-              aria-controls={menuId}
-              aria-haspopup="true"
-              size="large"
-              startIcon={<AccountIcon />}
-              onClick={handleProfileMenuOpen}
-              sx={{ color: "white" }}
-            >
-              {UserService.getUsername()}
-            </Button>
-            {renderMenu}
+            {isAuthenticated ? (
+              <>
+                <Button
+                  aria-label="user account"
+                  aria-controls={menuId}
+                  aria-haspopup="true"
+                  size="large"
+                  startIcon={<AccountIcon />}
+                  onClick={handleProfileMenuOpen}
+                  sx={{ color: "white" }}
+                >
+                  {username}
+                </Button>
+                {renderMenu}
+              </>
+            ) : (
+              <Button
+                size="large"
+                startIcon={<AccountIcon />}
+                onClick={() => {
+                  console.log("Login button clicked");
+                  UserService.doLogin();
+                }}
+                sx={{ color: "white" }}
+              >
+                Login
+              </Button>
+            )}
           </Box>
         </Toolbar>
       </AppBar>

@@ -25,6 +25,7 @@ function App() {
         <Main>
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/images" element={<Images />} />
             <Route path="/containers" element={<Containers />} />
             <Route path="/federated-jobs" element={<FederatedJobs />} />

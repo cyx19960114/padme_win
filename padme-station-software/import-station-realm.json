@@ -1,0 +1,134 @@
+{
+  "realm": "pht-station",
+  "enabled": true,
+  "displayName": "PHT Station Realm",
+  "displayNameHtml": "<div class=\"kc-logo-text\"><span>PHT Station</span></div>",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 30,
+  "defaultRoles": ["default-roles-pht-station", "offline_access", "uma_authorization"],
+  "requiredCredentials": ["password"],
+  "users": [
+    {
+      "username": "station1",
+      "enabled": true,
+      "totp": false,
+      "emailVerified": true,
+      "firstName": "Station",
+      "lastName": "One",
+      "email": "station1@localhost.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "station123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["default-roles-pht-station", "offline_access", "uma_authorization"],
+      "groups": []
+    },
+    {
+      "username": "station2", 
+      "enabled": true,
+      "totp": false,
+      "emailVerified": true,
+      "firstName": "Station",
+      "lastName": "Two",
+      "email": "station2@localhost.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "station123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["default-roles-pht-station", "offline_access", "uma_authorization"],
+      "groups": []
+    },
+    {
+      "username": "station3",
+      "enabled": true,
+      "totp": false,
+      "emailVerified": true,
+      "firstName": "Station",
+      "lastName": "Three", 
+      "email": "station3@localhost.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "station123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["default-roles-pht-station", "offline_access", "uma_authorization"],
+      "groups": []
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "pht-station-web",
+      "name": "PHT Station Web Frontend",
+      "description": "Frontend client for PHT Station Software",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": ["http://localhost:3030/*"],
+      "webOrigins": ["http://localhost:3030"],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "exclude.session.state.from.auth.response": "false",
+        "display.on.consent.screen": "false"
+      },
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": ["web-origins", "role_list", "profile", "roles", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"]
+    },
+    {
+      "clientId": "pht-station-backend",
+      "name": "PHT Station Backend",
+      "description": "Backend client for PHT Station Software", 
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "9eDl3P2lWBhXvuYjy3rsCIi9MvOFFRak",
+      "redirectUris": ["http://localhost:3030/*"],
+      "webOrigins": ["http://localhost:3030"],
+      "notBefore": 0,
+      "bearerOnly": true,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "exclude.session.state.from.auth.response": "false",
+        "display.on.consent.screen": "false"
+      },
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": ["web-origins", "role_list", "profile", "roles", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"]
+    }
+  ]
+}

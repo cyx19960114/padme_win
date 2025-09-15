@@ -1,0 +1,153 @@
+version: '3.8'
+
+services:
+  # 动态Station Software - 根据用户自动路由到不同Station
+  pht-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.quick
+    container_name: pht-web-dynamic
+    ports:
+      - "3030:3030"  # 所有用户都访问同一个端口
+    volumes:
+      - pht-web-dynamic-stations:/usr/src/app/stations  # 动态Station配置目录
+      - pht-web-dynamic-lockfile:/lockfiledir  # 锁文件目录（用于兼容性）
+    environment:
+      # MongoDB Configuration
+      - MONGO_HOST=mongo
+      - MONGO_PORT=27017
+      - MONGO_USER=admin
+      - MONGO_PASSWORD=admin123456
+      - MONGO_DB=pht
+      - MONGO_AUTH_SOURCE=admin
+      
+      # Docker Configuration
+      - DOCKER_HOST=pht-dind
+      - DOCKER_PORT=2376
+      
+      # Harbor/Registry Configuration
+      - HARBOR_ADDRESS=localhost
+      - HARBOR_PORT=8080
+      
+      # Central Service Configuration
+      - CENTRALSERVICE_ADDRESS=localhost
+      - CENTRALSERVICE_PORT=3000
+      - CENTRALSERVICE_ENDPOINT=http://localhost:3000
+      
+      # Authentication Configuration
+      - AUTH_SERVER_ADDRESS=host.docker.internal
+      - AUTH_SERVER_PORT=8090
+      - KC_AUTH_SERVER_URL=http://host.docker.internal:8090
+      - KC_PUBLIC_KEY_URL=http://host.docker.internal:8090/realms/pht-station/protocol/openid-connect/certs
+      - REACT_APP_KC_AUTH_SERVER_URL=http://localhost:8090
+      - KC_REALM=pht-station
+      - KC_CLIENT_ID=pht-station-backend
+      - KC_CLIENT_SECRET=9eDl3P2lWBhXvuYjy3rsCIi9MvOFFRak
+      - REACT_APP_KC_CLIENT_ID=pht-station-web
+      - REACT_APP_KC_REALM=pht-station
+      
+      # Vault Configuration
+      - VAULT_HOST=vault
+      - VAULT_PORT=8200
+      - VAULT_TOKEN=station-root-token
+      - VAULT_ADDR=http://vault:8200
+      
+      # Security Configuration
+      - JWT_SECRET=pht-station-jwt-secret
+      - SESSION_SECRET=pht-station-session-secret
+      
+      # Metadata Configuration
+      - METADATA_PROVIDER=http://metadata:9988
+      - METADATA_STORE=http://localhost:8001
+      
+      # Feature Configuration
+      - COSIGN_ENABLED=false
+      - NODE_ENV=development
+      
+      # Mount Configuration
+      - HOST_MOUNT_DIRECTORY=/tmp
+      
+    networks:
+      - padme-network
+    depends_on:
+      - mongo
+      - dind
+      - vault
+    restart: unless-stopped
+
+  # 共享服务 (MongoDB, Docker-in-Docker, Vault)
+  mongo:
+    image: mongo:4.4.18
+    container_name: pht-mongo
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin123456
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - padme-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  dind:
+    image: docker:20.10.24-dind
+    container_name: pht-dind
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+    volumes:
+      - dind-certs-ca:/certs/ca
+      - dind-certs-client:/certs/client
+      - dind-data:/var/lib/docker
+    networks:
+      - padme-network
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  vault:
+    image: vault:1.13.3
+    container_name: pht-vault
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=station-root-token
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    ports:
+      - "8200:8200"
+    networks:
+      - padme-network
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  metadata:
+    image: nginx:alpine
+    container_name: pht-metadata
+    ports:
+      - "9988:80"
+    volumes:
+      - ./metadata:/usr/share/nginx/html
+    networks:
+      - padme-network
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
+  dind-certs-ca:
+  dind-certs-client:
+  dind-data:
+  pht-web-dynamic-stations:
+  pht-web-dynamic-lockfile:
+
+networks:
+  padme-network:
+    external: true

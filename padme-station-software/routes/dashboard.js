@@ -270,9 +270,9 @@ module.exports = (keycloak) => {
 
   router.get("/v2/keycloakConfig", (req, res) => {
     res.send({
-      realm: process.env.REACT_APP_KC_REALM || "pht",
-      url: process.env.REACT_APP_KC_AUTH_SERVER_URL || "https://localhost:8443",
-      clientId: process.env.REACT_APP_KC_CLIENT_ID || "pht-web"
+      realm: process.env.REACT_APP_KC_REALM || "pht-station",
+      url: process.env.REACT_APP_KC_AUTH_SERVER_URL || "http://localhost:8090",
+      clientId: process.env.REACT_APP_KC_CLIENT_ID || "pht-station-web"
     });
   });
 

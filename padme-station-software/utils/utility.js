@@ -60,7 +60,7 @@ const getCSTargetURL = () => {
   if (envEndpoint != null && envEndpoint != undefined && envEndpoint.length > 0) {
     endPoint = `/${envEndpoint}`
   }
-  return `https://${process.env.CENTRALSERVICE_ADDRESS}:${process.env.CENTRALSERVICE_PORT}${endPoint}`
+  return `http://${process.env.CENTRALSERVICE_ADDRESS}:${process.env.CENTRALSERVICE_PORT}${endPoint}`
 } 
 
 module.exports = {

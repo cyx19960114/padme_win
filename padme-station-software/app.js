@@ -79,6 +79,10 @@ app.use(
 const keycloak = require("./config/keycloak-config").initKeycloak(memoryStore);
 app.use(keycloak.middleware());
 
+// Dynamic Station Middleware
+const { dynamicStationMiddleware, getStationInfo, getAllStations } = require("./middleware/dynamicStationMiddleware");
+app.use(dynamicStationMiddleware);
+
 // Log all details in production for better visibility and finding bugs
 if (app.get("env") === "development") {
   app.use(logger("dev"));
@@ -102,6 +106,10 @@ const dockerAPIRouter = require("./routes/docker/docker")(keycloak);
 const vaultRouter = require("./routes/vault")(keycloak);
 const telegrafRouter = require("./routes/telegraf/telegraf");
 const { loginToRegistry, downloadSignaturePublicKey } = require("./utils/cosign");
+
+// Station Information API endpoints
+app.get("/api/station/info", keycloak.protect(), getStationInfo);
+app.get("/api/station/all", keycloak.protect(), getAllStations);
 
 app.use("/dashboard", dashboardRouter);
 app.use("/federated", federatedRouter);

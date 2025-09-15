@@ -1,0 +1,20 @@
+{
+  "userStationMapping": {
+    "station1": {
+      "id": "station-1",
+      "name": "Station 1",
+      "email": "station1@localhost.local"
+    },
+    "station2": {
+      "id": "station-2",
+      "name": "Station 2",
+      "email": "station2@localhost.local"
+    },
+    "station3": {
+      "id": "station-3",
+      "name": "Station 3",
+      "email": "station3@localhost.local"
+    }
+  },
+  "defaultStation": "station1"
+}

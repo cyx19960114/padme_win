@@ -2,7 +2,7 @@ const Keycloak = require('keycloak-connect');
 const axios = require('axios').default;
 
 let _keycloak;
-const authServerUrl = process.env.KC_AUTH_SERVER_URL || "https://localhost:8443";
+const authServerUrl = process.env.KC_AUTH_SERVER_URL || "http://host.docker.internal:8090";
 const realm = process.env.KC_REALM || "pht";
 let _publicKey;
 
@@ -10,13 +10,13 @@ let keycloakConfig = {
     "realm": realm,
     "auth-server-url": authServerUrl,
     "ssl-required": process.env.KC_SSL_REQUIRED || "false",
-    "resource": process.env.KC_CLIENT_ID || "pht-web-backend",
+    "resource": process.env.KC_CLIENT_ID || "pht-station",
     "bearer-only": true
 }
 
 async function setPublicKey() {
     try {
-        const publicKeyUrl = process.env.KC_PUBLIC_KEY_URL || `http://localhost:8090/realms/pht/protocol/openid-connect/certs`;
+        const publicKeyUrl = process.env.KC_PUBLIC_KEY_URL || `http://host.docker.internal:8090/realms/pht/protocol/openid-connect/certs`;
         const response = await axios.get(publicKeyUrl);
         const { public_key } = response.data;
         _publicKey = public_key;
