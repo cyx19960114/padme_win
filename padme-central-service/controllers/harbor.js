@@ -1,209 +1,133 @@
-const _ = require('lodash')
-const harborUtil = require('../utils').harbor;
-const { FLRepositoryName, FLRepositoryLearningImageName, FLRepositoryAggregationImageName} = require('../federated/constants.js');
-const JobManager = require('../federated/jobManager');
-const TrainRepositoryName = "train_class_repository";
+// 开发环境专用Harbor控制器 - 使用基本HTTP认证直接连接Harbor
+const axios = require('axios');
 
-function pushRepoTagsToArray(repository, array)
-{
-    _.forEach(repository.tags, (tag) =>
-    {
-        if(tag != null)
-        {
-            var tagObject = {};
-            tagObject.tag = tag.name;
-            tagObject.trainclass = repository.name + ":" + tag.name;
-            array.push(tagObject); 
-        }
-    });
-}
+const HARBOR_URL = `http://host.docker.internal:8080`;
+const HARBOR_AUTH = {
+  username: process.env.HARBOR_ADMIN_USER || 'admin',
+  password: process.env.HARBOR_ADMIN_PASSWORD || 'Harbor12345'
+};
 
-async function getRepositoriesFromTrainClass(trainclass, req, res, next)
-{
-    let harborApiClient = harborUtil.getHarborApiClient(req, true);
-
-    //GET ALL REPOSITORIES FROM train_class_repository
-    let repositories = [];
-    try {
-        let RepositoryApi = new harborApiClient.RepositoryApi();
-        let opts = { 'pageSize': 0 };
-        let result = await RepositoryApi.listRepositories(trainclass, opts);
-        repositories = result.body;
-    } catch (error) {
-        console.log(error);
-        next(error);
-    }
-
-    let repoPromises = [];
-    _.forEach(repositories, async (repo) => {
-
-        // console.log(repo.name);
-        //GET ARTIFACTS FOR EACH REPOSITORY (With Tags)
-        let ArtifactApi = new harborApiClient.ArtifactApi();
-        var opts = { 'withTag': true };
-        let projectName = repo.name.split("/")[0];
-        let repoName = repo.name.replace(/^.+?\//, '');
-        repoPromises.push(ArtifactApi.listArtifacts(projectName, repoName, opts));
-    });
-
-    let promiseResult = [];
-    try {
-        promiseResult = await Promise.all(repoPromises);
-    } catch (error) {
-        console.log(error);
-        next(error);
-        return;
-    }
-
-    let artifacts = promiseResult.map(a => a.body);
-    _.forEach(repositories, (repo, i) => {
-        let repoArtifacts = artifacts[i];
-        repo.tags = repoArtifacts.map(a => a.tags) 
-        repo.tags = _.flatten(repo.tags);
-    });
-    return repositories;
-}
-
-/**
- * Ensures that the train class repositories for both incremental and federated exists.
- * If they do not exist, they will be created, with retention policy set for both.
- */
-const ensureTrainClassRepositoriesExists = async () => {
-    let auth = {};
-    harborUtil.authAsAdmin(auth, async (err) => {
-        if (err) {
-            console.error(`Error authenticating as admin to Harbor`, err);
-            return;
-        }
-        try {
-            const trainRepo = harborUtil.ensureProjectExists(auth, TrainRepositoryName, true, true);
-            const flTrainRepo = harborUtil.ensureProjectExists(auth, FLRepositoryName, true, true);
-            Promise.all([trainRepo, flTrainRepo]).then(() => {
-                console.log(`Ensured both train class repositories exist`);
-            }).catch((error) => {
-                console.error(`Error ensuring both train class repositories exist`, error);
-            });
-        } catch (error) {
-            console.error(`Error ensuring both train class repositories exist`, error);
-        }
-    });
-}
-
-ensureTrainClassRepositoriesExists();
+console.log(`🔧 [DEV] Harbor Controller - URL: ${HARBOR_URL}`);
+console.log(`🔧 [DEV] Harbor Auth - User: ${HARBOR_AUTH.username}`);
 
 module.exports = {
-
-    async getProjects(req, res, next) {
-
-        let harborApiClient = harborUtil.getHarborApiClient(req);
-
-        //GET PROJECTS - USER LEVEL ACCESS
-        try {
-            let harborProjectApi = new harborApiClient.ProjectApi();
-            let getProjectResult = await harborProjectApi.listProjects();
-            console.log(getProjectResult.body);
-            let projects = getProjectResult.body;
-            
-            //GET REPOSITORIES FOR EACH PROJECT
-            let repoPromises = [];
-            _.forEach(projects, (project) => {
-                let RepositoryApi = new harborApiClient.RepositoryApi();
-                repoPromises.push(RepositoryApi.listRepositories(project.name));
-            });
-
-            let repoPromisesResult = await Promise.all(repoPromises);
-            let repositories = repoPromisesResult.map(a => a.body);
-            repositories.map((repo, i) => {
-                if (!repo)
-                    repo = [];
-                projects[i].repositories = repo;
-            });
-
-            let tagPromises = [];
-            _.forEach(projects, (project) => {
-                _.forEach(project.repositories, (repo) => {
-                    let ArtifactApi = new harborApiClient.ArtifactApi();
-                    var opts = { 'withTag': true };
-                    let projectName = project.name;
-                    let repoName = repo.name.replace(/^.+?\//, '');
-                    tagPromises.push(ArtifactApi.listArtifacts(projectName, repoName, opts));
-                });
-            });
-
-            tagPromisesResult = await Promise.all(tagPromises);
-            let artifacts = tagPromisesResult.map(a => a.body);
-            _.forEach(projects, (project) => {
-                _.forEach(project.repositories, (repo, i) => {
-                    let repoArtifacts = artifacts[i] || [];
-                    repo.tags = repoArtifacts.map(a => a.tags)
-                    repo.tags = _.flatten(repo.tags);
-                });
-            });
-
-            res.status(200).send(projects);
-
-        } catch (error) {
-            console.error(error);
-            next(error);
-        }
-    },
-
-    async getTrainClassRepositories(req, res, next) {
-        try {
-            var repositories = await getRepositoriesFromTrainClass(TrainRepositoryName, req, next); 
-            res.status(200).send(repositories);
-        } catch (error) {
-            console.log(error);
-            next(error);
-            return;
-        }        
-    },
-
-    async getFederatedTrainClassRepositories(req, res, next) {
-
-        var repositories;
-        
-        try {
-            repositories= await getRepositoriesFromTrainClass(FLRepositoryName, req, next); 
-        } catch (error) {
-            console.log(error);
-            next(error);
-            return;
-        }
-        
-        //Restructure the data so that training/aggregation image are in the same project
-        var projects = [];
-        let jobManager = new JobManager();
-        _.forEach(repositories, (repository) => {
-            var project = {};
-            //Skip repos that have the wrong format
-            if (repository.name.lastIndexOf('/') == repository.name.indexOf('/')) return;
-
-            project.name = repository.name.substring(repository.name.indexOf('/') + 1, repository.name.lastIndexOf('/'));
-            project.processing = jobManager.isProcessing(project.name);
-            
-            //Add project if not already exists
-            var existingProject = _.find(projects, ['name', project.name]);
-            if (existingProject == undefined)
-            {
-                projects.push(project);
-                existingProject = project;
-            }
-
-            //Add tags for project type
-            var projectType = repository.name.substring(repository.name.lastIndexOf('/') + 1);
-            if (projectType === FLRepositoryLearningImageName)
-            {
-                existingProject.learning = [];
-                pushRepoTagsToArray(repository, existingProject.learning);
-            }
-            else if (projectType === FLRepositoryAggregationImageName)
-            {
-                existingProject.aggregation = [];
-                pushRepoTagsToArray(repository, existingProject.aggregation);
-            }
-        });
-
-        res.status(200).send(projects);
+  async getProjects(req, res, next) {
+    try {
+      console.log('🔍 [Harbor] 获取所有项目...');
+      
+      const response = await axios.get(`${HARBOR_URL}/api/v2.0/projects`, { 
+        auth: HARBOR_AUTH,
+        timeout: 10000 
+      });
+      
+      console.log(`✅ [Harbor] 找到 ${response.data.length} 个项目`);
+      res.status(200).json(response.data);
+      
+    } catch (error) {
+      console.error('❌ [Harbor] 获取项目失败:', error.message);
+      res.status(500).json({ error: error.message });
     }
-}
+  },
+
+  async getTrainClassRepositories(req, res, next) {
+    try {
+      console.log('🔍 [Harbor] 获取训练类仓库...');
+      
+      const response = await axios.get(
+        `${HARBOR_URL}/api/v2.0/projects/train_class_repository/repositories`,
+        { auth: HARBOR_AUTH, timeout: 10000 }
+      );
+      
+      console.log(`✅ [Harbor] 找到 ${response.data.length} 个训练仓库`);
+      res.status(200).json(response.data);
+      
+    } catch (error) {
+      console.error('❌ [Harbor] 获取训练仓库失败:', error.message);
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  async getFederatedTrainClassRepositories(req, res, next) {
+    try {
+      console.log('🔍 [Harbor] 获取联邦学习项目...');
+      console.log(`🔗 [Harbor] 请求URL: ${HARBOR_URL}/api/v2.0/projects/federated_learn_repository/repositories`);
+      
+      // 获取federated_learn_repository项目的所有仓库
+      const response = await axios.get(
+        `${HARBOR_URL}/api/v2.0/projects/federated_learn_repository/repositories`,
+        { 
+          auth: HARBOR_AUTH, 
+          timeout: 10000,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      const repositories = response.data;
+      console.log(`📦 [Harbor] 原始仓库数据 (${repositories.length}个):`, 
+        repositories.map(r => r.name));
+      
+      // 重新组织数据结构以匹配前端期望的格式
+      const projects = [];
+      const projectMap = {};
+      
+      repositories.forEach(repo => {
+        // 解析仓库名: federated_learn_repository/项目名/类型
+        const parts = repo.name.split('/');
+        console.log(`🔍 [Harbor] 解析仓库: ${repo.name} -> parts:`, parts);
+        
+        if (parts.length >= 3) {
+          const projectName = parts[1];  // 项目名 (如: diabetes_prediction)
+          const imageType = parts[2];    // 类型 (learning 或 aggregation)
+          
+          console.log(`📋 [Harbor] 项目: ${projectName}, 类型: ${imageType}`);
+          
+          if (!projectMap[projectName]) {
+            projectMap[projectName] = {
+              name: projectName,
+              processing: false
+            };
+            projects.push(projectMap[projectName]);
+            console.log(`➕ [Harbor] 新增项目: ${projectName}`);
+          }
+          
+          // 添加镜像标签信息
+          if (imageType === 'learning') {
+            projectMap[projectName].learning = [{
+              tag: 'latest',
+              trainclass: `${repo.name}:latest`
+            }];
+            console.log(`📚 [Harbor] 添加学习镜像: ${projectName}`);
+          } else if (imageType === 'aggregation') {
+            projectMap[projectName].aggregation = [{
+              tag: 'latest', 
+              trainclass: `${repo.name}:latest`
+            }];
+            console.log(`🔄 [Harbor] 添加聚合镜像: ${projectName}`);
+          }
+        } else {
+          console.log(`⚠️ [Harbor] 跳过格式不正确的仓库: ${repo.name}`);
+        }
+      });
+      
+      console.log(`✅ [Harbor] 最终返回 ${projects.length} 个联邦学习项目:`);
+      projects.forEach(p => {
+        console.log(`  📄 ${p.name}: learning=${!!p.learning}, aggregation=${!!p.aggregation}`);
+      });
+      
+      res.status(200).json(projects);
+      
+    } catch (error) {
+      console.error('❌ [Harbor] 获取联邦学习项目失败:', error.message);
+      console.error('❌ [Harbor] 错误详情:', {
+        url: `${HARBOR_URL}/api/v2.0/projects/federated_learn_repository/repositories`,
+        auth: { username: HARBOR_AUTH.username, password: '***' },
+        error: error.response?.data || error.message
+      });
+      
+      res.status(500).json({ error: error.message });
+    }
+  }
+};

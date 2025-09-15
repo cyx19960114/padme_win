@@ -27,7 +27,7 @@ services:
       DB_HOST: center_database
       
       # Harbor配置 (连接到本地Harbor)
-      HARBOR_ADDRESS: harbor-harbor
+      HARBOR_ADDRESS: host.docker.internal
       HARBOR_PORT: 8080
       HARBOR_ADMIN_USER: admin
       HARBOR_ADMIN_PASSWORD: Harbor12345
@@ -35,9 +35,9 @@ services:
       HARBOR_WEBHOOK_SECRET: harbor_webhook_secret_2024
       
       # Keycloak配置 (连接到本地Keycloak)
-      AUTH_SERVER_ADDRESS: keycloak
+      AUTH_SERVER_ADDRESS: host.docker.internal
       REACT_APP_AUTH_SERVER_ADDRESS: http://localhost:8090
-      AUTH_SERVER_PORT: 8080
+      AUTH_SERVER_PORT: 8090
       AUTH_SERVER_ADMIN_CLI_USERNAME: admin
       AUTH_SERVER_ADMIN_CLI_PASSWORD: admin_password_2024
       KEYCLOAK_CLIENT_SECRET: "VHdbyDpLxGVNwcSxU1PBSDUJDPiCxzjZ"

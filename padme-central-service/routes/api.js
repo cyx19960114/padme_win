@@ -4,7 +4,8 @@ var router = express.Router();
 const jobinfoController = require('../controllers').jobinfo;
 const fl_jobinfoController = require('../controllers').fl_jobinfo;
 const jobResultController = require('../controllers').jobresult;
-const harborController = require('../controllers').harbor;
+// 使用修复后的Harbor控制器
+const harborController = require('../controllers/harbor');
 const stationController = require('../controllers').station;
 
 const harborUtil = require('../utils').harbor;
@@ -39,10 +40,21 @@ module.exports = (keycloak)=>{
   router.post('/federatedjobinfo/:stationId/:jobId/storage', keycloak.protect(), harborUtil.auth, fl_jobinfoController.handleStationStorage);
   router.get('/federatedjobinfo/:jobId/aggregationlogs', keycloak.protect(), harborUtil.auth,  fl_jobinfoController.getAggregationLogs);
 
-  /* HARBOR Router */
-  router.get('/harbor/projects', keycloak.protect(), harborUtil.auth, harborController.getProjects);
-  router.get('/harbor/trains', keycloak.protect(), harborUtil.auth, harborController.getTrainClassRepositories);
-  router.get('/harbor/federatedtrains', keycloak.protect(), harborUtil.auth, harborController.getFederatedTrainClassRepositories);
+  /* HARBOR Router - 开发环境直接访问Harbor API */
+  router.get('/harbor/projects', harborController.getProjects);
+  router.get('/harbor/trains', harborController.getTrainClassRepositories);
+  router.get('/harbor/federatedtrains', harborController.getFederatedTrainClassRepositories);
+  
+  /* TEST Harbor Connection */
+  router.get('/test/harbor', (req, res) => {
+    res.json({
+      status: 'ok',
+      message: 'Harbor test endpoint working - DEV MODE',
+      harbor_address: process.env.HARBOR_ADDRESS,
+      harbor_port: process.env.HARBOR_PORT,
+      harbor_url: `http://${process.env.HARBOR_ADDRESS}:${process.env.HARBOR_PORT}`
+    });
+  });
 
   /* STATION ROUTER */
   router.get('/stations', keycloak.protect(), stationController.getStations);

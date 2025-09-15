@@ -6,7 +6,7 @@ const _ = require('lodash');
 
 function getAdminAuthRequestOptions() {
 
-    let authServer = new URL('/auth/realms/pht/protocol/openid-connect/token', `https://${process.env.AUTH_SERVER_ADDRESS}`);
+    let authServer = new URL('/auth/realms/pht/protocol/openid-connect/token', `http://${process.env.AUTH_SERVER_ADDRESS}`);
     authServer.port = process.env.AUTH_SERVER_PORT;
     var options = {
         'url': authServer.toString(),
@@ -62,15 +62,16 @@ module.exports = {
             req.harbor = { auth: {} };
         }
 
-        req.harbor.auth.preferred_username = req.kauth.grant.access_token.content.preferred_username;
-        req.harbor.auth.access_token = req.kauth.grant.access_token.token;
+        // 如果有Keycloak认证
+        if (req.kauth && req.kauth.grant && req.kauth.grant.access_token) {
+            req.harbor.auth.preferred_username = req.kauth.grant.access_token.content.preferred_username;
+            req.harbor.auth.access_token = req.kauth.grant.access_token.token;
+        }
 
-        authAsAdmin(req, (err) => {
-            if (err) {
-                return res.status(400).send(err)
-            }
-            return next();
-        });
+        // 直接继续，不依赖Keycloak admin认证
+        // Harbor API客户端会自动使用基本认证
+        console.log("Harbor auth middleware: 跳过Keycloak admin认证，使用Harbor基本认证");
+        return next();
     },
     authAsAdmin,
     authWebhookSecret: (req, res, next) => {
@@ -140,8 +141,22 @@ module.exports = {
 
         let defaultClient = HarborApi.ApiClient.instance;
         defaultClient.basePath = this.getApiAddress();
-        defaultClient.authentications['APIKeyHeader'].apiKeyPrefix = 'Bearer'
-        defaultClient.authentications['APIKeyHeader'].apiKey = (isAdmin ? req.harbor.auth.admin_access_token : req.harbor.auth.access_token);
+        
+        // 如果Harbor认证token不可用，使用基本认证
+        if (isAdmin && (!req.harbor || !req.harbor.auth || !req.harbor.auth.admin_access_token)) {
+            // 使用Harbor基本认证
+            defaultClient.authentications['BasicAuth'].username = process.env.HARBOR_ADMIN_USER || 'admin';
+            defaultClient.authentications['BasicAuth'].password = process.env.HARBOR_ADMIN_PASSWORD || 'Harbor12345';
+        } else if (!isAdmin && (!req.harbor || !req.harbor.auth || !req.harbor.auth.access_token)) {
+            // 对于非管理员用户，也使用基本认证
+            defaultClient.authentications['BasicAuth'].username = process.env.HARBOR_ADMIN_USER || 'admin';
+            defaultClient.authentications['BasicAuth'].password = process.env.HARBOR_ADMIN_PASSWORD || 'Harbor12345';
+        } else {
+            // 使用Bearer token认证
+            defaultClient.authentications['APIKeyHeader'].apiKeyPrefix = 'Bearer'
+            defaultClient.authentications['APIKeyHeader'].apiKey = (isAdmin ? req.harbor.auth.admin_access_token : req.harbor.auth.access_token);
+        }
+        
         return HarborApi;
         
     },

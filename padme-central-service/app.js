@@ -37,7 +37,11 @@ const keycloak = require("./config/keycloak.config.js").initKeyCloak(
   memoryStore
 );
 
-app.use(keycloak.middleware());
+// 开发环境：完全禁用Keycloak中间件
+// app.use(keycloak.middleware({
+//   logout: '/logout',
+//   admin: '/'
+// }));
 
 // We use a proxy, therefore, we need to trust proxies:
 // we use docker, therefore we need to trust a specific range of ip adresses
@@ -64,8 +68,10 @@ app.use(`${HOST_BASE}/`, express.static('TrainRequester/build'));
 //Routes
 const apiRouter = require('./routes/api')(keycloak);
 const hookRouter = require('./routes/hook');
+// const testRouter = require('./routes/test'); // 测试路由
 
 app.use(`${HOST_BASE}/api`, apiRouter);
+// app.use(`${HOST_BASE}/test`, testRouter); // 独立的测试路由
 app.use(`${HOST_BASE}/hook`, hookRouter);
 
 // catch 404 and forward to error handler
